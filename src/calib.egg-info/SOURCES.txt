@@ -1,9 +1,0 @@
-README.md
-pyproject.toml
-src/calib/__init__.py
-src/calib/data.py
-src/calib.egg-info/PKG-INFO
-src/calib.egg-info/SOURCES.txt
-src/calib.egg-info/dependency_links.txt
-src/calib.egg-info/top_level.txt
-src/calib/calibrators/__init__.py

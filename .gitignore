@@ -12,3 +12,4 @@ CLAUDE.md
 PLAN.md
 TECHNICAL_REFERENCE.md
 papers/
+*.egg-info/
