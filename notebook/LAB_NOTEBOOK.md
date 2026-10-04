@@ -595,3 +595,7 @@ Explain:
 * `src/calib/rq_setup.py` gained `base_preds_with_test()`, the same test base model computation as `final.py`, cached to `data/base_preds_with_test.parquet`, so later scripts don't need to rerun the final.
 * Checked before writing: in the Qwen3 B2 group scatter, the two off-diagonal groups are `comp_hard` (predicted 0.204, pass 0.062) and `uses_imports` (0.403 vs 0.288). IGLB made no patches on B2 because its 63 problem early stopping set showed no gain.
 * Limitations listed in the paper: one benchmark; public data, no execution by me; test-based labels; two similar sized models; assumed costs; 10 samples at inference for self consistency; difficulty is metadata; empty programs; the 2000 token cap; small calib set; bootstrap ignores refit variation; hand made groups.
+
+### Phase 15: resume and interview prep
+
+`INTERVIEW_PREP.md` (local only, gitignored): resume bullets from the final numbers, a 60 second summary, the IGHB loop step by step, one sentence per metric, the starting score story, when calibration can and cannot change routing, limitations, and expected questions with answers. Practicing out loud is mine to do.
