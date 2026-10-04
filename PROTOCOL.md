@@ -28,3 +28,13 @@ Settings match the Campos code (`github.com/violacampos/multicalibration`, commi
 * Groups: extended set, thresholds from official train, groups with fewer than 40 train problems dropped (drops `syntax_invalid` for GPT OSS). Primary set excludes difficulty; secondary includes it. Lists in `runs/phase10/chosen.json`.
 * Primary comparison: BSS of IGLB minus Platt on test, no difficulty groups, with a 95% task clustered paired bootstrap interval (2000 resamples, seed 0), for `avg_prob` and for B2, per model. Hypothesis: the gain is large for `avg_prob` and near zero for B2.
 * Everything else in the RQ2 tables is secondary and exploratory.
+
+## RQ3, routing
+
+* Pairs: problem t, sample k of the primary with sample k of the fallback. Primary Qwen3 (median 874 output tokens vs 1468 for GPT OSS, so cheaper to call first), fallback GPT OSS. Roles swapped as a robustness check.
+* Calibrators: uncalibrated, Platt, IGLB (RQ2 settings, no difficulty groups), from `avg_prob` and from B2.
+* Policies: P0 always primary; P1 always fallback; P2 oracle (labels, reference only); P3 random at rate r (in expectation); P4 escalate the lowest r of primary confidence, r in {10, 20, 30, 40}%, cutoff = validation quantile (`method="lower"`); P5 escalate when `p_A < q_B - c_B / L` with q_B the fallback's calib pass rate; P5c same with q_B fit as a logistic function of logit p_A on calib pairs; P6 run both, keep the higher calibrated probability (ties keep A).
+* Assumed costs (scenarios, not measurements): c_A = 1, c_B in {1, 2, 5}, cost of a wrong shipped answer L = 10.
+* Metrics: system pass rate, escalation rate, accepted error rate, compute cost `c_A + c_B * escalation` (P6: `c_A + c_B`), total cost = compute + L x failure rate, regret = oracle pass at the same escalation minus policy pass. Also per group.
+* Primary comparison: P6 system pass rate, IGLB minus Platt, from `avg_prob` and from B2, 95% task clustered paired bootstrap. Hypothesis: positive from `avg_prob`, zero from B2.
+* Secondary: P4 at 20% (IGLB minus Platt), P5 and P5c total cost per scenario. Platt minus uncalibrated on P4 must be exactly 0 (checked).

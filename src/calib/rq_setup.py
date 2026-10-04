@@ -5,6 +5,7 @@ import pandas as pd
 
 from calib.data import DATA_DIR
 from calib.groups import EXTENDED, build_groups, keep_groups
+from calib.pipeline import calibrate
 from calib.scores import add_scores
 from calib.splits import assign, split_train
 
@@ -42,9 +43,33 @@ def load_base_preds():
 
 
 def sel(rows, model, role):
-    return ((rows.model == model) & (rows.role == role)).to_numpy()
+    """role: one role name or a list of them."""
+    roles = [role] if isinstance(role, str) else role
+    return ((rows.model == model) & rows.role.isin(roles)).to_numpy()
 
 
 def arrays(rows, G, mask, score, cols):
     return {"p": np.clip(rows[score].to_numpy()[mask], 0, 1), "y": rows.y.to_numpy()[mask],
             "G": G[mask][:, cols], "task": rows.task_id.to_numpy()[mask]}
+
+
+def calibrated(rows, G, model, start, method, eval_role, cols, chosen):
+    """Calibrator fit on calib (IGLB: calib_fit, early stop on calib_stop), applied to eval_role rows.
+    Returns predictions keyed by (task_id, sample_idx)."""
+
+    fit = arrays(rows, G, sel(rows, model, "calib_fit") | sel(rows, model, "calib_stop"), start, cols)
+    fit_only = arrays(rows, G, sel(rows, model, "calib_fit"), start, cols)
+    stop = arrays(rows, G, sel(rows, model, "calib_stop"), start, cols)
+    ev_mask = sel(rows, model, eval_role)
+    ev = arrays(rows, G, ev_mask, start, cols)
+    if method == "platt":
+        q, _ = calibrate("platt", chosen["platt_version"][f"{model}/{start}"], fit, None, ev)
+    elif method == "iglb":
+        q, _ = calibrate("iglb", "code", fit_only, stop, ev, epsilon=chosen["iglb_epsilon"])
+    elif method == "ighb":
+        q, _ = calibrate("ighb", "code", fit, None, ev, alpha=chosen["ighb_alpha"])
+    else:
+        q, _ = calibrate(method, "code", fit, None, ev)
+    out = rows.loc[ev_mask, ["task_id", "sample_idx", "y"]].copy()
+    out["q"] = np.clip(q, 0, 1)
+    return out

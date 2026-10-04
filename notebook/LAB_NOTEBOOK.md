@@ -456,3 +456,42 @@ What it says about the hypothesis:
 Explain:
 * The table says multicalibration's big wins in Campos come from starting at a score that knows nothing about the groups. A logistic model trained with log loss on features that define the groups is already roughly calibrated on them (its gradient conditions force average residual 0 along each feature), so there's little left to fix.
 * Settings were chosen on validation; test is used once in Phase 13. Picking settings by test score would make test an optimistic estimate, the same overfitting problem as the winner's curse, one level up.
+
+### Phase 11: routing (RQ3, validation)
+
+`src/calib/routing.py`, `experiments/rq3_routing.py`, outputs in `runs/phase11/` (`routing.csv`, `routing_bootstrap.csv`, `routing_per_group.csv`, `platt_rank_sanity.csv`, `tradeoff_curves.png`). Settings in `PROTOCOL.md`.
+
+Primary model: Qwen3. Both models have about 3B active parameters, so "cheap vs expensive" is a scenario, but Qwen3 writes far fewer tokens (median 874 vs 1468) and truncates less, so it's the natural first call. Swapped as a robustness check.
+
+Validation pass rates: Qwen3 0.448, GPT OSS 0.495, oracle 0.602. Qwen3 fails and GPT OSS passes on 15.4% of pairs; the reverse on 10.6%.
+
+Sanity check: Platt gives exactly the same P4 decisions as uncalibrated, 0 differences in all 16 cases (2 primaries x 2 starts x 4 rates). Cutoffs use `np.quantile(method="lower")` so the cutoff is an actual data value and any order preserving map keeps the same rows below it.
+
+Key results, IGLB minus Platt with 95% task clustered bootstrap:
+
+| primary | start | P4 20% pass | P6 pass |
+|---|---|---|---|
+| Qwen3 | avg_prob | +0.005 [0.000, 0.011] | +0.081 [0.058, 0.106] |
+| Qwen3 | B2 | 0.000 | +0.002 [-0.002, 0.006] |
+| GPT OSS | avg_prob | +0.037 [0.019, 0.055] | +0.081 [0.058, 0.106] |
+| GPT OSS | B2 | 0.000 | +0.002 [-0.002, 0.006] |
+
+(P6 is symmetric in the two models, so it's the same number for both primaries.)
+
+P6 pass rates: from avg_prob uncalibrated 0.459, Platt 0.502, IGLB 0.583; from B2 0.589 to 0.591 for all three. The oracle is 0.602, so P6 with B2 or IGLB gets within 0.02 of it, at double the compute.
+
+P5, cost threshold with overall q_B (total cost, lower is better, c_B = 2): Qwen3 primary from avg_prob: uncalibrated 6.52 (never escalates, raw p is too high), Platt 7.01, IGLB 7.10. Always primary is 6.52. Better calibrated p_A made P5 worse here. Reason: q_B is the fallback's overall pass rate, but the two models fail on the same hard problems, so where Qwen3 looks worst, GPT OSS also does worse than its average. The threshold escalates exactly the rows where escalation helps least. P5c (q_B as a function of p_A, fit on calib pairs) fixes this for Platt but not for IGLB: IGLB's in-sample p_A on calib is sharper than its out-of-sample p_A, so P5c learns too optimistic a q_B. GPT OSS primary from avg_prob is the one place the cost policies clearly prefer IGLB: P5c at c_B = 1, IGLB minus Platt total cost -0.40 [-0.64, -0.18].
+
+From B2, P5 and P5c costs differ by at most 0.05 between calibrators, except Qwen3 P5 c_B = 5, where Platt escalates 13.6% vs 2.7% and costs +0.48 more.
+
+What it says about the hypothesis:
+* Rank based (P4): Platt can't change decisions (verified). Multicalibration can, by reordering rows across groups: from avg_prob with GPT OSS primary, +0.037 pass at 20% escalation. From B2 the rank barely moves and decisions are identical.
+* Comparing two models (P6): the biggest effect. Raw scores from two models aren't on the same scale; Platt puts each on an honest marginal scale (+0.04); IGLB adds group information (truncation, length) that tells you which model's answer is actually usable (+0.08 more). From B2 there's nothing left to gain.
+* Fixed thresholds (P5): calibration of p_A is necessary but not enough. The threshold also needs B's chance on this problem, which is correlated with A's. Using the overall q_B made better calibration look worse.
+* Same pattern as RQ2: multicalibration's value comes from fixing a weak starting score. Starting from B2 it changes nothing that matters for decisions.
+
+Explain:
+* Calibration vs ranking: ranking is which answer is more likely to pass; calibration is whether "0.7" means 70%. A rank based policy uses only ranking. Any calibrator that keeps order (Platt) can't change it.
+* Policies that care about scale: fixed thresholds (P5) and comparisons across two models (P6). There the number itself matters, not just the order.
+* The oracle uses labels, so it's not a policy. It's the ceiling: the best pass rate any policy could get at a given escalation rate. Regret is the distance to it.
+* Costs are assumptions. Changing c_B or L moves the thresholds and can flip which calibrator wins, so every cost result is labeled with its scenario.
