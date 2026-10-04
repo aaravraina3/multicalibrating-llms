@@ -322,3 +322,7 @@ Explain:
 * Rules are replayed in order because each rule's cell is defined by the predictions at that moment. Applying them in a different order selects different rows.
 * IGLB uses cells like "all rows in group g with p <= 0.6", much bigger than one bin, so the error estimate is less noisy. Its patch is a small Platt curve fit on the cell, which keeps the order inside the cell instead of adding one flat shift. It stops when validation Brier stops improving.
 * IGHB is known to overfit when run long on small cells (Phase 2, Globus-Harris et al.). With the Campos stopping rule it doesn't run long enough to overfit here; its weak numbers come from stopping early.
+
+### Phase 8: replication checkpoint (RQ1)
+
+Rule, written before looking at any test number: after seeing these test numbers I may only fix bugs. Every fix gets logged here with what changed and why. No setting changes. Tagged `v-replication` before the first test run.
