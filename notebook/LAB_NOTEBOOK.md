@@ -130,3 +130,31 @@ Explain:
 * The 10 rows of a problem share the problem's difficulty, so they pass or fail together. They are not 10 independent pieces of evidence.
 * Splitting by problem keeps near-duplicate attempts at the same problem from landing on both sides, which would leak.
 * Routing compares Qwen3 and GPT OSS on the same problem, so both need the same IDs with the same split. Checked: they do.
+
+### Phase 2: synthetic sandbox
+
+`experiments/synthetic.py`, outputs in `runs/phase2/`. Population of 100,000 with `long` (40%), `nested` (30%), `imports` (50%); `logit p* = 1.0 - 0.8 long - 0.5 nested - 1.2 (long AND imports)`. Predictor: logistic regression with main effects only, logit doubled.
+
+* Reliability (`reliability.png`): predictor ECE 0.118, true p* ECE 0.004. Overconfident: says 0.92 where 0.72 pass, 0.10 where 0.19 pass. Distance to truth 0.0179.
+* HJKRR loop (`src/calib/calibrators/hjkrr.py`): 10 bins; groups all, long, nested, imports, long AND imports. Shift any slice with at least `min_size` rows and gap above `alpha`; bins recomputed before every check; stop when a full pass makes no update.
+* Distance per update (`distance_per_update.png`):
+  * large slices (n=100,000, min_size=500, alpha=0.02): 8 updates, none moved away from the truth. 0.0179 to 0.0003. ECE after 0.008.
+  * small slices (n=1,000, min_size=10, alpha=0.005): 10 updates, 2 moved away from the truth. Winner's curse as expected.
+* Winner's curse (`winners_curse.png`): p* as predictor, 30 slices of 200, 2000 repeats. Biggest gap averages 0.077. On fresh labels, the unfixed slice is off by 0.026, the "fixed" slice by 0.076. Fixing made it worse in 86% of repeats.
+* Overfitting vs n (`overfitting_vs_n.png`), min_size=10, alpha=0.01, 20 repeats, fresh 100,000 for evaluation. Mean distance to truth:
+
+| n | from overconfident (start 0.0178) | from p* (start 0) |
+|---|---|---|
+| 200 | 0.0089 | 0.0085 |
+| 500 | 0.0039 | 0.0035 |
+| 2000 | 0.0009 | 0.0008 |
+| 10000 | 0.0002 | 0.0001 |
+
+  Starting from p*, every change is fitted noise, and the damage at n=200 is half the size of the original miscalibration. Two of the 20 n=200 runs from the overconfident start ended worse than they began.
+
+Explain:
+* Calibration: among rows predicted near v, the pass rate is about v.
+* Each correction moves predictions toward the truth when the measured gap is close to the real gap: shifting a slice by its real average error always lowers squared distance to p* (Lemma 3.6). The plot confirms it for big slices.
+* The biggest of 30 noisy gaps is mostly noise: each slice of 200 has standard error about 0.03, so the max of 30 lands near 2.5 standard errors even when nothing is wrong.
+* Small samples overfit because every slice estimate is noisy, so the loop fixes noise. The error shrinks roughly like 1/n.
+* The loop is adaptive: which slice it checks next depends on predictions it already changed using the same labels. So checking slices on the data you fixed overstates how calibrated you are. HJKRR handle this with the guess and check oracle and differential privacy (§3.3).
