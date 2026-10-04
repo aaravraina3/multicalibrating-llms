@@ -73,3 +73,21 @@ def test_logr_code_outputs_hard_labels():
 def test_ighb_campos_alpha_is_loose():
     # max P(g) * gASCE(g) of this predictor is below 1/20, so the Campos stopping rule never starts.
     assert len(IGHB("code").fit(ptr, ytr, Gtr).rules) == 0
+
+
+def test_noise_aware_ighb_leaves_truth_alone():
+    from calib.calibrators.ighb_protected import NoiseAwareIGHB
+    rng = np.random.default_rng(5)
+    p = rng.uniform(0.1, 0.9, 4000)
+    y = (rng.random(4000) < p).astype(int)
+    G = np.column_stack([np.ones(4000, bool), rng.random(4000) < 0.5])
+    task = np.repeat(np.arange(400), 10)
+    plain = IGHB("code", alpha=1e-5).fit(p, y, G)
+    guarded = NoiseAwareIGHB(alpha=1e-5).fit(p, y, G, task)
+    assert len(guarded.rules) < len(plain.rules)
+
+
+def test_holdout_ighb_replay_reproduces_train():
+    from calib.calibrators.ighb_protected import HoldoutIGHB
+    m = HoldoutIGHB(alpha=0.001).fit(ptr, ytr, Gtr, pva, yva, Gva)
+    assert len(m.rules) > 0 and np.array_equal(m.predict(ptr, Gtr), m.fitted_)

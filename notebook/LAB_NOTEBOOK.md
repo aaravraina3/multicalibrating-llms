@@ -495,3 +495,43 @@ Explain:
 * Policies that care about scale: fixed thresholds (P5) and comparisons across two models (P6). There the number itself matters, not just the order.
 * The oracle uses labels, so it's not a policy. It's the ceiling: the best pass rate any policy could get at a given escalation rate. Regret is the distance to it.
 * Costs are assumptions. Changing c_B or L moves the thresholds and can flip which calibrator wins, so every cost result is labeled with its scenario.
+
+### Phase 12: RQ4, overfitting study (validation only, exploratory)
+
+Literature search first ("multicalibration overfitting", "reusable holdout", "thresholdout calibration", Hansen et al., Globus-Harris et al.):
+* Overfitting of iterative multicalibration on small cells is known. Detommaso et al. 2024 motivate IGLB's larger overlapping cells with it; Globus-Harris et al. 2023 frame multicalibration as boosting, which overfits the same way; MCGrad (Meta, web scale multicalibration) relies on validation early stopping.
+* HJKRR §3.3 already handle adaptivity with a guess and check oracle and differential privacy. Dwork et al. 2015 (Thresholdout) reuse a holdout by adding noise to the check. Feldman and Steinke 2018 scale the noise to the query's variance, which is close to my noise aware rule.
+* Hansen et al. 2024: models that are calibrated out of the box tend to be multicalibrated already; post processing mostly helps uncalibrated models. That matches RQ2.
+* So neither guarded variant is a new idea. What's here is an empirical check on code LLM calibration data. I won't call anything "first".
+
+Setup (`src/calib/calibrators/ighb_protected.py`, `experiments/rq4_overfitting.py`, outputs `runs/phase12/`): subsample 25, 50, 100, 200 calib problems (20 random repeats each) or all 211 (once). Starts avg_prob and B2, no difficulty groups. Measure validation Brier minus the starting score's validation Brier (negative = helped).
+* IGHB at the chosen alpha 0.003, and IGHB long (alpha 1e-4, cap 300 steps)
+* noise aware IGHB (alpha 1e-4): only update a cell whose gap exceeds 2 standard errors, computed by problem (cluster SE), and only if the cell spans at least 5 problems
+* holdout IGHB (alpha 1e-4): fit on 70% of the subsample's problems; accept an update only if holdout Brier gain + Laplace(0, 2e-4) noise > 0; a rejected cell is skipped until the next accepted update
+* IGLB (fit 70%, early stop 30%) and Platt for reference
+
+Bug found and fixed during the phase: the first noise aware run took more steps at n=25 than at n=200 for Qwen3 B2. With only 2 or 3 problems in a cell, the cluster SE is unreliable and can be tiny, so noise passed the 2 SE test. Added the 5 problem minimum. This is a setting chosen after looking at validation, fine for an exploratory RQ, and logged here.
+
+Mean validation Brier change, start B2 (nothing much left to fix, so any change is mostly fitted noise):
+
+| method | Qwen3 n=25 | 50 | 100 | 200 | GPT OSS n=25 | 50 | 100 | 200 |
+|---|---|---|---|---|---|---|---|---|
+| Platt | +0.006 | +0.002 | +0.001 | -0.001 | +0.001 | -0.001 | -0.001 | -0.001 |
+| IGLB | +0.005 | +0.009 | +0.001 | +0.000 | +0.002 | +0.001 | +0.001 | -0.000 |
+| IGHB alpha 0.003 | +0.059 | +0.034 | +0.017 | +0.002 | +0.014 | +0.007 | +0.002 | +0.001 |
+| IGHB long | +0.083 | +0.077 | +0.056 | +0.031 | +0.027 | +0.023 | +0.012 | +0.007 |
+| holdout IGHB | +0.054 | +0.038 | +0.019 | +0.011 | +0.017 | +0.016 | +0.009 | +0.004 |
+| noise aware IGHB | +0.005 | +0.012 | +0.011 | +0.003 | +0.000 | +0.002 | +0.001 | +0.001 |
+
+Start avg_prob (lots to fix), Qwen3 / GPT OSS at n=25: IGHB -0.160 / -0.203, IGHB long -0.119 / -0.182, noise aware -0.152 / -0.190, holdout -0.144 / -0.187, IGLB -0.168 / -0.215, Platt -0.220 / -0.069.
+
+What it shows:
+* IGHB overfits when it runs long on little data, and the damage shrinks as data grows, like Phase 2. From B2 with 25 problems, long IGHB makes Qwen3 0.083 Brier worse, about 0.4 of B2's whole skill margin.
+* The noise aware rule removes most of it: at n=25 it's as harmless as Platt and IGLB. It costs a little when there is real signal (avg_prob start: -0.152 vs -0.160 for plain IGHB).
+* The holdout check helps less. It gives up 30% of an already small sample, and a single noisy Brier check on a small holdout accepts many bad updates.
+* IGLB was already safe: early stopping on held out data plus big cells means it rarely patches when there's nothing to fix.
+* Noise aware IGHB from avg_prob on GPT OSS hits the 300 step cap at n=200 and 211: overlapping groups keep producing significant, opposite corrections (the "bouncing" failure mode). The cap matters.
+
+Explain:
+* Connection to HJKRR §3.3: the loop chooses its next question based on answers it already got from the same sample, so naive reuse overfits. HJKRR fix it by answering through a noisy guess and check oracle (differential privacy). The holdout variant is a direct, crude version of that idea; the noise aware rule is the statistical testing version: only act on gaps too big to be noise.
+* The plot (`brier_change_vs_size.png`): from a strong start, every IGHB curve starts above zero (harm) at small n and falls toward zero as n grows; noise aware IGHB, IGLB, and Platt stay near zero throughout.
