@@ -210,3 +210,34 @@ Notes:
 Explain:
 * Token confidence says how sure the model is about the next token, not whether the program passes. Fluent, confident text can implement the wrong algorithm, so the scores sit far above the pass rate.
 * Reasoning tokens might help because hesitant reasoning (low probability tokens while working out the approach) signals a hard problem, and that shows up before any code is written.
+
+### Phase 5: group agnostic calibrators
+
+`src/calib/calibrators/platt.py` (versions `code`, `paper`, `logit`), `histogram.py` (HB and isotonic), `tests/test_calibrators_basic.py`, `experiments/group_agnostic_validation.py`. Fit on official train, evaluated on validation, starting score avg_prob. 11 tests pass: logit Platt returns identity on calibrated input (a and b within 0.05 of 1 and 0); every Platt version keeps ranking; HB cuts train ECE by more than 5x on an overconfident input.
+
+| model | method | BSS | log loss | ECE | ACC | AUROC | Platt a, b |
+|---|---|---|---|---|---|---|---|
+| Qwen3 | uncalibrated | -0.549 | 1.135 | 0.432 | 0.448 | 0.853 | |
+| Qwen3 | Platt code (raw p, C=1) | 0.375 | 0.470 | 0.064 | 0.789 | 0.853 | 14.5, -13.3 |
+| Qwen3 | Platt paper (log p) | 0.385 | 0.461 | 0.039 | 0.789 | 0.853 | 16.1, 1.36 |
+| Qwen3 | Platt logit | 0.352 | 0.487 | 0.086 | 0.771 | 0.853 | 1.16, -3.30 |
+| Qwen3 | HB | 0.375 | 0.472 | 0.048 | 0.786 | 0.847 | |
+| Qwen3 | isotonic (ours) | 0.373 | 0.469 | 0.050 | 0.782 | 0.850 | |
+| GPT OSS | uncalibrated | -0.098 | 0.747 | 0.217 | 0.495 | 0.768 | |
+| GPT OSS | Platt code | 0.197 | 0.593 | 0.086 | 0.715 | 0.768 | 13.7, -9.71 |
+| GPT OSS | Platt paper | 0.215 | 0.585 | 0.054 | 0.716 | 0.768 | 13.4, 4.63 |
+| GPT OSS | Platt logit | 0.202 | 0.600 | 0.071 | 0.710 | 0.768 | 3.45, -3.12 |
+| GPT OSS | HB | 0.226 | 0.571 | 0.021 | 0.689 | 0.762 | |
+| GPT OSS | isotonic (ours) | 0.232 | 0.571 | 0.021 | 0.714 | 0.770 | |
+
+Done: Platt and HB beat uncalibrated on validation BSS for both models. Validation numbers already sit near Campos's test numbers (Platt 0.377 / 0.187, HB 0.383 / 0.237).
+
+Notes:
+* Platt AUROC equals uncalibrated exactly in every version: it never changes the order. HB and isotonic change AUROC slightly because they merge neighboring scores into ties.
+* With raw p, a is about 14. All avg_prob values sit in a narrow high band (most between 0.8 and 1), so the slope has to be steep to spread them over [0, 1]. "a below 1 shrinks toward the middle" only applies to the logit version.
+* The paper version (log p) beats the code version slightly on both models. Phase 8 still uses the code version to match their table.
+
+Explain:
+* Platt's a sets how steep the curve is (how much to trust differences in the score); b shifts everything up or down.
+* HB can fix any shape because each of the 21 grid points gets its own shift, while Platt is locked to one S curve.
+* Both look only at the score. Two answers with the same score get the same output, whatever their difficulty or length. That's the gap multicalibration fills.
