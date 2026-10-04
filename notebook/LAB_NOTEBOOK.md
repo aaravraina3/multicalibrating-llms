@@ -241,3 +241,34 @@ Explain:
 * Platt's a sets how steep the curve is (how much to trust differences in the score); b shifts everything up or down.
 * HB can fix any shape because each of the 21 grid points gets its own shift, while Platt is locked to one S curve.
 * Both look only at the score. Two answers with the same score get the same output, whatever their difficulty or length. That's the gap multicalibration fills.
+
+### Phase 6: groups
+
+`src/calib/groups.py`, `src/calib/features.py` (AST helper), `experiments/groups_table.py`, outputs in `runs/phase6/`.
+
+Replication set, matching their code: `loc_high` (newline count of the program > median), `prompt_len_high` (prompt characters > median), `len_high` (full output characters > median), `comp_easy`, `comp_medium`, `comp_hard`. Same column order as their code, since it decides ties in the argmax. No `all` group. Medians are over train rows only, per model (known deviation: theirs pools all splits).
+
+Extended set for RQ2 and RQ3: the six plus `nested` (AST block nesting depth above the train median of 4), `uses_imports`, `syntax_invalid` (non-empty code that fails `ast.parse`), `truncated` (output hit the 2000 token cap, from Phase 1), and `all`. `truncated` is my addition, motivated by Phase 1. Groups with fewer than 40 train problems are dropped per model (`keep_groups`). The "long prompt" group from the plan is the same as `prompt_len_high`.
+
+Train medians: Qwen3 loc 18, output 3014 chars; GPT OSS loc 13, output 4521.5 chars; prompt 1324 chars for both (same prompts).
+
+| group | Qwen3 train problems | Qwen3 val problems | Qwen3 train pass rate | GPT OSS train problems | GPT OSS val problems | GPT OSS train pass rate |
+|---|---|---|---|---|---|---|
+| loc_high | 362 | 191 | 0.502 | 374 | 181 | 0.903 |
+| prompt_len_high | 263 | 139 | 0.304 | 263 | 139 | 0.395 |
+| len_high | 338 | 170 | 0.177 | 347 | 193 | 0.134 |
+| comp_easy | 164 | 73 | 0.810 | 164 | 73 | 0.907 |
+| comp_medium | 190 | 96 | 0.435 | 190 | 96 | 0.506 |
+| comp_hard | 173 | 95 | 0.111 | 173 | 95 | 0.169 |
+| nested | 213 | 106 | 0.490 | 178 | 86 | 0.865 |
+| uses_imports | 104 | 63 | 0.337 | 348 | 170 | 0.909 |
+| syntax_invalid | 104 | 60 | 0.000 | 3 | 2 | 0.000 (dropped) |
+| truncated | 226 | 133 | 0.004 | 324 | 173 | 0.006 |
+| all | 527 | 264 | 0.445 | 527 | 264 | 0.520 |
+
+Group size counts problems with at least one row in the group, so a problem can count in a group and in its complement.
+
+Explain:
+* Groups have to be computable without labels because at deployment you assign a new answer to its groups before knowing if it passes. A group defined by the label would be a perfect cheat that can't be applied.
+* Thresholds come from train only so nothing about validation or test leaks into the method. Pooling medians over all splits, as their code does, uses test features, a small leak.
+* Difficulty is benchmark metadata. A real coding assistant doesn't know a problem's difficulty label, so results that depend on it may not carry over. RQ2 and RQ3 run with and without it.

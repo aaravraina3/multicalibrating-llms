@@ -1,0 +1,14 @@
+{
+  "qwen3": {
+    "loc": 18.0,
+    "prompt_len": 1324.0,
+    "output_len": 3014.0,
+    "nesting": 4.0
+  },
+  "gpt-oss": {
+    "loc": 13.0,
+    "prompt_len": 1324.0,
+    "output_len": 4521.5,
+    "nesting": 4.0
+  }
+}
