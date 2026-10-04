@@ -1,0 +1,14 @@
+.venv/
+data/
+runs/*/raw/
+reference/
+__pycache__/
+.pytest_cache/
+.DS_Store
+thomas_notes.pdf
+
+# kept local only
+CLAUDE.md
+PLAN.md
+TECHNICAL_REFERENCE.md
+papers/
