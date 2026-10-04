@@ -158,3 +158,19 @@ Explain:
 * The biggest of 30 noisy gaps is mostly noise: each slice of 200 has standard error about 0.03, so the max of 30 lands near 2.5 standard errors even when nothing is wrong.
 * Small samples overfit because every slice estimate is noisy, so the loop fixes noise. The error shrinks roughly like 1/n.
 * The loop is adaptive: which slice it checks next depends on predictions it already changed using the same labels. So checking slices on the data you fixed overstates how calibrated you are. HJKRR handle this with the guess and check oracle and differential privacy (§3.3).
+
+### Phase 3: metrics and evaluation tools
+
+`src/calib/metrics.py`, `src/calib/bootstrap.py`, `src/calib/plots.py`, `tests/test_metrics.py`. 8 tests pass.
+
+Decisions:
+* BSS base rate from the evaluated rows (Campos convention).
+* Accuracy is `p > 0.5`, strict, as in their code.
+* `ece` and `gasce` take `round_to_grid`. Off: 20 equal width bins, last includes 1.0, confidence is each row's own p. On: Campos code, round to the nearest of 21 grid points with `argmin |p - grid|` (exact ties go to the lower point, tested at 0.375), and the grid value is the confidence. Replication tables use `round_to_grid=True`; everything else uses off.
+* Bootstrap: resample problem IDs with replacement, 2000 resamples, seed 0, take all rows of each drawn problem, 2.5 and 97.5 percentiles. `paired_diff` scores both methods on the same resample.
+
+Explain:
+* Brier measures overall probability quality: calibration and separation together. ECE measures only calibration and ignores separation. AUROC measures only ranking and ignores calibration entirely. Each misses what the others catch.
+* Predicting the base rate for everyone puts every row in one bin whose mean prediction equals its pass rate, so ECE is 0 while the predictions are useless (tested).
+* ECE can be 0 overall while one group is off at 90% and another at 30% in opposite directions. gASCE measures calibration inside each group, so it catches that.
+* The 10 rows of a problem are correlated. Resampling rows would treat 2640 test rows as independent and give intervals that are too narrow. Resampling problems matches the real amount of evidence, about 264.
