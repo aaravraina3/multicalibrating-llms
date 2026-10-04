@@ -272,3 +272,53 @@ Explain:
 * Groups have to be computable without labels because at deployment you assign a new answer to its groups before knowing if it passes. A group defined by the label would be a perfect cheat that can't be applied.
 * Thresholds come from train only so nothing about validation or test leaks into the method. Pooling medians over all splits, as their code does, uses test features, a small leak.
 * Difficulty is benchmark metadata. A real coding assistant doesn't know a problem's difficulty label, so results that depend on it may not carry over. RQ2 and RQ3 run with and without it.
+
+### Phase 7: multicalibration methods
+
+`src/calib/calibrators/{linr,logr,ighb,iglb}.py`, each with `version="code"` (default, their repo) or `"paper"` (their algorithms as written). `src/calib/pipeline.py` holds the shared fit/predict plumbing. `tests/test_multicalibration.py`: 11 tests, 22 total pass.
+* IGHB and IGLB (both versions) cut max gASCE on a fresh synthetic sample by more than half.
+* Replaying saved rules on train reproduces the fitted train predictions exactly (both versions, both methods).
+* LINR (both versions) zeroes every group's mean residual on train.
+* LOGR code outputs only 0 and 1; paper version outputs probabilities.
+
+Validation table, replication groups, avg_prob, fit on train. IGLB early stops on validation and is scored on validation, so its numbers here are optimistic. Full table: `runs/phase7/validation.csv`.
+
+| method | version | Qwen3 BSS | Qwen3 max gASCE | GPT OSS BSS | GPT OSS max gASCE | steps (Q / G) |
+|---|---|---|---|---|---|---|
+| uncalibrated | | -0.549 | 0.496 | -0.098 | 0.298 | |
+| Platt | code | 0.375 | 0.062 | 0.197 | 0.133 | |
+| HB | | 0.375 | 0.057 | 0.226 | 0.123 | |
+| LINR | code | 0.458 | 0.018 | 0.771 | 0.040 | |
+| LINR | paper | 0.465 | 0.016 | 0.766 | 0.040 | |
+| LOGR | code (hard labels) | 0.265 | 0.082 | 0.824 | 0.010 | |
+| LOGR | paper (probabilities) | 0.474 | 0.021 | 0.821 | 0.017 | |
+| IGHB | code | 0.184 | 0.125 | 0.477 | 0.086 | 5 / 3 |
+| IGHB | paper | 0.117 | 0.150 | 0.452 | 0.076 | 5 / 3 |
+| IGLB | code | 0.465 | 0.022 | 0.827 | 0.004 | 8 / 5 |
+| IGLB | paper | 0.375 | 0.037 | 0.826 | 0.002 | 4 / 5 |
+
+Ordering matches Campos Table 1: IGLB and LINR on top, Platt and HB in the middle, IGHB low. GPT OSS gains are huge because the groups (`len_high`, difficulty) carry the truncation signal raw token probability misses.
+
+**Finding: IGHB is underfit, not overfit.** Campos say IGHB overfits. In their code it stops when max P(g) gASCE(g) <= 1/M = 0.05, which is loose. It stops after 3 to 5 steps with train BSS as bad as validation BSS (`runs/phase7/ighb_alpha_sweep.csv`):
+
+| alpha | Qwen3 steps | Qwen3 train BSS | Qwen3 val BSS | GPT OSS steps | GPT OSS train BSS | GPT OSS val BSS |
+|---|---|---|---|---|---|---|
+| 0.05 (Campos) | 5 | 0.131 | 0.184 | 3 | 0.466 | 0.477 |
+| 0.02 | 7 | 0.301 | 0.294 | 9 | 0.638 | 0.660 |
+| 0.01 | 11 | 0.367 | 0.348 | 13 | 0.702 | 0.733 |
+| 0.003 | 16 | 0.417 | 0.406 | 19 | 0.749 | 0.778 |
+| 0.001 | 29 | 0.451 | 0.456 | 29 | 0.775 | 0.802 |
+| 0.0003 | 65 | 0.477 | 0.453 | 42 | 0.790 | 0.815 |
+
+Tighter alpha helps validation until about 0.001; for Qwen3 the train/validation gap opens at 0.0003, the first sign of overfitting. Phase 8 still uses 0.05 to match their table; Phase 10 picks alpha on validation for RQ2 and RQ3. Same effect on the synthetic data: the Phase 2 predictor already passes the 0.05 rule, so Campos IGHB makes zero updates (tested).
+
+Other notes:
+* LOGR code on GPT OSS scores BSS 0.824 with hard labels, because hard labels are right 95.6% of the time there. Brier = 1 - accuracy = 0.044.
+* Paper IGLB on Qwen3 first looped 1000 steps: the chosen cell was `p >= 1.0` within `comp_easy`, where the logit patch can't move (logit of 1 - 1e-10 is about 23, the gradient vanishes). The unrounded patch gained about 1e-10 in validation Brier, rounding undid it, repeat. Fix: judge the rounded result. Commented in the code.
+* Rounding (paper versions) hurts Qwen3: rounded IGLB 0.375 vs unrounded 0.465.
+
+Explain:
+* IGHB loop: measure every group x bin cell's average error, pick the cell where (share of rows) x (error squared) is largest, shift that cell by its error, then measure again, because the shift moved rows between bins and changed other cells it overlaps. Stop when every group's weighted error is small.
+* Rules are replayed in order because each rule's cell is defined by the predictions at that moment. Applying them in a different order selects different rows.
+* IGLB uses cells like "all rows in group g with p <= 0.6", much bigger than one bin, so the error estimate is less noisy. Its patch is a small Platt curve fit on the cell, which keeps the order inside the cell instead of adding one flat shift. It stops when validation Brier stops improving.
+* IGHB is known to overfit when run long on small cells (Phase 2, Globus-Harris et al.). With the Campos stopping rule it doesn't run long enough to overfit here; its weak numbers come from stopping early.
