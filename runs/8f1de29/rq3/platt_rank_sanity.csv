@@ -1,0 +1,17 @@
+primary,start,rate,decisions_differ
+qwen3,avg_prob,0.1,0
+qwen3,avg_prob,0.2,0
+qwen3,avg_prob,0.3,0
+qwen3,avg_prob,0.4,0
+qwen3,B2,0.1,0
+qwen3,B2,0.2,0
+qwen3,B2,0.3,0
+qwen3,B2,0.4,0
+gpt-oss,avg_prob,0.1,0
+gpt-oss,avg_prob,0.2,0
+gpt-oss,avg_prob,0.3,0
+gpt-oss,avg_prob,0.4,0
+gpt-oss,B2,0.1,0
+gpt-oss,B2,0.2,0
+gpt-oss,B2,0.3,0
+gpt-oss,B2,0.4,0

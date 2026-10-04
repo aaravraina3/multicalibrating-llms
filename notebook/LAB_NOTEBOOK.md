@@ -535,3 +535,55 @@ What it shows:
 Explain:
 * Connection to HJKRR §3.3: the loop chooses its next question based on answers it already got from the same sample, so naive reuse overfits. HJKRR fix it by answering through a noisy guess and check oracle (differential privacy). The holdout variant is a direct, crude version of that idea; the noise aware rule is the statistical testing version: only act on gaps too big to be noise.
 * The plot (`brier_change_vs_size.png`): from a strong start, every IGHB curve starts above zero (harm) at small n and falls toward zero as n grows; noise aware IGHB, IGLB, and Platt stay near zero throughout.
+
+### Phase 13: freeze and final test run
+
+Before the freeze:
+* Refactored the RQ2, RQ3, RQ4, and RQ1 scripts into functions so `experiments/final.py` runs the exact validation code on test. Reran the validation versions after the refactor: identical outputs, with one exception.
+* The exception, a consistency fix: the RQ2 bootstrap used unclipped LINR predictions (the code version can go outside [0, 1]) while the table clipped them. Both now clip. Only LINR rows moved, by +0.004 to +0.009 (Qwen3 avg_prob with difficulty: +0.079 became +0.088). Done before any test run.
+* `final.py --dry-run` ran the full pipeline with validation in place of test and reproduced the Phase 10 and 11 numbers. It caught one bug: `b3.compare` is a pandas method, so the RQ3 summary filter matched nothing. Fixed with `b3["compare"]`.
+* `PROTOCOL.md` finished (split hashes, seeds, metrics, RQ4, run procedure), committed, tagged `v-final`.
+
+Final run: `python -m experiments.final` on commit `8f1de29`, once. Output in `runs/8f1de29/`. The refit base models reproduced the Phase 9 validation predictions exactly (asserted). No bugs found after the run.
+
+**RQ1** (train medians, test, 95% interval): every method within 0.004 BSS of Campos Table 1. Qwen3 IGLB 0.478 [0.394, 0.557], paper 0.480; GPT OSS IGLB 0.768 [0.707, 0.820], paper 0.764. The intervals are wide (about +-0.07), so the paper's differences between neighbors like LINR and IGLB, or Platt and HB, are within noise.
+
+**RQ2 primary** (IGLB minus Platt, test BSS, no difficulty groups):
+
+| model | start | diff | 95% interval |
+|---|---|---|---|
+| Qwen3 | avg_prob | +0.019 | [-0.016, 0.054] |
+| Qwen3 | B2 | +0.001 | [-0.008, 0.012] |
+| GPT OSS | avg_prob | +0.593 | [0.522, 0.668] |
+| GPT OSS | B2 | -0.002 | [-0.008, 0.003] |
+
+Hypothesis supported for GPT OSS: a huge gain from raw token probability, none from B2. For Qwen3 there's no clear IGLB gain even from avg_prob with deployment realistic groups; LINR does better there (+0.062 [0.025, 0.102]).
+
+Test BSS, no difficulty groups:
+
+| model | start | uncal | Platt | HB | LINR | IGHB | IGLB |
+|---|---|---|---|---|---|---|---|
+| Qwen3 | avg_prob | -0.543 | 0.390 | 0.382 | 0.452 | 0.401 | 0.409 |
+| Qwen3 | B1 | 0.570 | 0.567 | 0.553 | 0.565 | 0.552 | 0.570 |
+| Qwen3 | B2 | 0.560 | 0.559 | 0.540 | 0.560 | 0.527 | 0.560 |
+| Qwen3 | B3 | 0.520 | 0.519 | 0.514 | 0.539 | 0.512 | 0.520 |
+| GPT OSS | avg_prob | -0.075 | 0.197 | 0.213 | 0.773 | 0.762 | 0.790 |
+| GPT OSS | B1 | 0.818 | 0.821 | 0.817 | 0.817 | 0.816 | 0.816 |
+| GPT OSS | B2 | 0.820 | 0.823 | 0.816 | 0.819 | 0.816 | 0.821 |
+| GPT OSS | B3 | 0.816 | 0.819 | 0.820 | 0.817 | 0.814 | 0.816 |
+
+Secondary:
+* With difficulty groups, Qwen3 B2 gains: LINR +0.041 [0.010, 0.077], IGLB +0.034 [-0.001, 0.078]. Difficulty is information the base model never saw, not better calibration.
+* IGHB hurts strong starts: Qwen3 B2 -0.033 [-0.063, -0.005].
+* Every start, every method beats raw scores; B1 and B2 beat every Campos method on avg_prob for Qwen3 (0.57 vs 0.45 for the best). For GPT OSS, IGLB on avg_prob (0.790) is close to B2 (0.820).
+* Empty programs excluded: Qwen3 IGLB minus Platt +0.018 [-0.028, 0.066] from avg_prob, +0.002 [-0.011, 0.015] from B2. GPT OSS rows with code pass about 94% of the time, so BSS there is unstable (small reference Brier). No start reaches BSS above 0.1, and Platt fit on all rows collapses (-1.48) because its single curve is dominated by the empty rows. The GPT OSS avg_prob gain is about recognizing empty and truncated outputs.
+
+**RQ3 primary** (P6 pass rate, IGLB minus Platt): avg_prob +0.067 [0.045, 0.089]; B2 +0.001 [-0.002, 0.005]. Supported. P6 pass: avg_prob uncalibrated 0.469, Platt 0.524, IGLB 0.591; B2 0.595 to 0.597; oracle 0.614.
+
+Secondary: Platt vs uncalibrated P4 decisions identical in all 16 cases (test). P4 20% IGLB minus Platt: GPT OSS primary from avg_prob +0.022 [0.005, 0.041]; Qwen3 primary +0.001 [-0.008, 0.009]; from B2 exactly 0. P5 cost thresholds are mixed: with Qwen3 primary from avg_prob, IGLB costs more than Platt at c_B = 5 (+0.74 [0.53, 0.95]) and P5c c_B = 2 (+0.32); with GPT OSS primary, IGLB costs less at c_B = 1 (-0.38 [-0.54, -0.23]). Always primary is often the cheapest policy for Qwen3 under these assumed costs.
+
+**RQ4** (test, B2 start, mean Brier change): at n=25, IGHB long +0.086 (Qwen3) / +0.028 (GPT OSS), plain IGHB +0.063 / +0.015, holdout IGHB +0.061 / +0.017, noise aware IGHB +0.007 / +0.001, IGLB +0.004 / +0.002, Platt +0.008 / +0.001. Same picture as validation.
+
+Explain:
+* The protocol is written before the test run so the test can only confirm or reject choices already made. If I picked settings after seeing test numbers, test would turn into a second validation set and the reported numbers would be optimistic.
+* If asked whether I tuned on test: no. Every setting is in `PROTOCOL.md` at tag `v-final`, the final run is commit `8f1de29`, and the notebook logs every change made after any test look (RQ1 had zero bug fixes). The only earlier test use was the Phase 8 replication, under a bug-fix-only rule written before looking.
