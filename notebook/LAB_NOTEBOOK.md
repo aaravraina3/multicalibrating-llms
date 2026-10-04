@@ -174,3 +174,39 @@ Explain:
 * Predicting the base rate for everyone puts every row in one bin whose mean prediction equals its pass rate, so ECE is 0 while the predictions are useless (tested).
 * ECE can be 0 overall while one group is off at 90% and another at 30% in opposite directions. gASCE measures calibration inside each group, so it catches that.
 * The 10 rows of a problem are correlated. Resampling rows would treat 2640 test rows as independent and give intervals that are too narrow. Resampling problems matches the real amount of evidence, about 264.
+
+### Phase 4: starting scores (validation only)
+
+`src/calib/scores.py`, `experiments/scores_validation.py`, outputs in `runs/phase4/`. `code_prob_campos` is their version: 0.0 when the code span is `[0, 0]`. `tail_prob` divides the last 40 logprobs by 40 like their code; a few outputs are shorter than 40 tokens (minimum 17), where this pulls the score down.
+
+All validation rows:
+
+| model | score | mean p | pass rate | BSS | ECE | AUROC |
+|---|---|---|---|---|---|---|
+| Qwen3 | avg_prob | 0.879 | 0.448 | -0.549 | 0.432 | 0.853 |
+| Qwen3 | code_prob_campos | 0.629 | 0.448 | 0.187 | 0.200 | 0.880 |
+| Qwen3 | tail_prob | 0.905 | 0.448 | -0.663 | 0.458 | 0.774 |
+| GPT OSS | avg_prob | 0.712 | 0.495 | -0.098 | 0.217 | 0.768 |
+| GPT OSS | code_prob_campos | 0.481 | 0.495 | 0.816 | 0.023 | 0.957 |
+| GPT OSS | tail_prob | 0.861 | 0.495 | -0.246 | 0.366 | 0.843 |
+
+Rows with a code span (the Campos Table 2 comparison, which excludes rows without code):
+
+| model | score | pass rate | BSS | ECE | AUROC |
+|---|---|---|---|---|---|
+| Qwen3 | avg_prob | 0.674 | -0.174 | 0.252 | 0.801 |
+| Qwen3 | code_prob | 0.674 | -0.341 | 0.293 | 0.720 |
+| Qwen3 | tail_prob | 0.674 | -0.380 | 0.300 | 0.595 |
+| GPT OSS | avg_prob | 0.936 | -0.689 | 0.198 | 0.527 |
+| GPT OSS | code_prob | 0.936 | 0.002 | 0.014 | 0.579 |
+| GPT OSS | tail_prob | 0.936 | -0.024 | 0.036 | 0.492 |
+
+Notes:
+* All three scores are badly overconfident. Qwen3 avg_prob averages 0.88 against a 0.45 pass rate.
+* On rows with code, avg_prob wins for Qwen3, as in Campos Table 2 (their test numbers: avg_prob ECE 0.294, BSS -0.257; code_prob ECE 0.342, BSS -0.453). Same ordering here.
+* On all rows, `code_prob_campos` looks best, but only because rows without code get 0.0 and those always fail. It's an "is there code" flag in disguise, not a better confidence.
+* GPT OSS rows with code pass 94% of the time, and no token score ranks them (AUROC 0.49 to 0.58). For GPT OSS nearly all the signal is whether it finished and produced code (Phase 1 truncation finding).
+
+Explain:
+* Token confidence says how sure the model is about the next token, not whether the program passes. Fluent, confident text can implement the wrong algorithm, so the scores sit far above the pass rate.
+* Reasoning tokens might help because hesitant reasoning (low probability tokens while working out the approach) signals a hard problem, and that shows up before any code is written.
