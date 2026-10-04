@@ -1,4 +1,4 @@
-model,start,size,rep,method,steps,val_brier_change
+model,start,size,rep,method,steps,brier_change
 qwen3,avg_prob,25,0,Platt,0,-0.23019973474197022
 qwen3,avg_prob,25,0,IGHB (alpha 0.003),24,-0.16195930614086365
 qwen3,avg_prob,25,0,IGHB long (alpha 1e-4),74,-0.12956754282426375

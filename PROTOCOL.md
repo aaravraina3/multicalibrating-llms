@@ -38,3 +38,31 @@ Settings match the Campos code (`github.com/violacampos/multicalibration`, commi
 * Metrics: system pass rate, escalation rate, accepted error rate, compute cost `c_A + c_B * escalation` (P6: `c_A + c_B`), total cost = compute + L x failure rate, regret = oracle pass at the same escalation minus policy pass. Also per group.
 * Primary comparison: P6 system pass rate, IGLB minus Platt, from `avg_prob` and from B2, 95% task clustered paired bootstrap. Hypothesis: positive from `avg_prob`, zero from B2.
 * Secondary: P4 at 20% (IGLB minus Platt), P5 and P5c total cost per scenario. Platt minus uncalibrated on P4 must be exactly 0 (checked).
+
+## RQ4, overfitting (exploratory)
+
+* Subsample `calib` to 25, 50, 100, 200 problems (20 repeats, seed `1000 * size + repeat`) and all 211 (once). Inside each subsample, 70% of problems fit and 30% hold out for IGLB and holdout IGHB.
+* Starts `avg_prob` and B2, no difficulty groups. Methods: Platt, IGHB alpha 0.003, IGHB alpha 1e-4 (cap 300), noise aware IGHB (alpha 1e-4, 2 cluster standard errors, at least 5 problems per cell, cap 300), holdout IGHB (alpha 1e-4, Laplace noise scale 2e-4, cap 300), IGLB.
+* Metric: Brier on the evaluated split minus the starting score's Brier. No primary comparison; all RQ4 results are exploratory.
+
+## Split hashes
+
+sha256 of the comma joined sorted problem IDs, first 16 hex characters:
+
+| set | problems | hash |
+|---|---|---|
+| base_train | 316 | 5b53a3c4e3016d2e |
+| calib_fit | 148 | e21ce81985906ce7 |
+| calib_stop | 63 | c1a1818c2eb308e2 |
+| validation | 264 | 14c3d2acef64cefa |
+
+## Seeds and metrics
+
+* Bootstrap: 2000 resamples of problems with replacement, seed 0, 2.5 and 97.5 percentiles.
+* Gradient boosting `random_state=0`; holdout IGHB Laplace noise seeded by repeat index.
+* Metrics: Brier, BSS (base rate from the evaluated rows), log loss (clip 1e-6), ECE (20 equal width bins; grid rounded only for RQ1 tables), max gASCE over groups, accuracy (`p > 0.5`), AUROC.
+* LINR and other outputs clipped to [0, 1] before every metric and bootstrap.
+
+## Final run
+
+* `python -m experiments.final` on the commit tagged `v-final`. Writes `runs/<git hash>/`. Run once. A bug found afterwards gets fixed, logged in the notebook, rerun, and reported.

@@ -38,3 +38,9 @@ def fit_select(kind, X_tr, y_tr, X_va, y_va):
         if best is None or loss < best[0]:
             best = (loss, params, model)
     return best[2], best[1], best[0]
+
+
+def fit_fixed(kind, params, X, y):
+    """Refit with already chosen hyperparameters (final run: no re-selection)."""
+    model = logistic(*params) if kind == "logistic" else boosting(*params)
+    return model.fit(X, y)
