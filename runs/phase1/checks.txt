@@ -1,0 +1,63 @@
+## rows per model per split (expect 5270 / 2640 / 2640)
+split    test  train  validation
+model                           
+gpt-oss  2640   5270        2640
+qwen3    2640   5270        2640
+
+## problems per split (expect 527 / 264 / 264)
+split    test  train  validation
+model                           
+gpt-oss   264    527         264
+qwen3     264    527         264
+
+## no problem in two splits
+max splits per problem: 1
+
+## same problem IDs and split for both models
+problems in only one model: 0
+problems with different split across models: 0
+
+## same prompt and difficulty for both models
+prompt mismatches: 0
+difficulty mismatches: 0
+
+## pass rate per model per split (train and validation only)
+split    train  validation
+model                     
+gpt-oss  0.520       0.495
+qwen3    0.445       0.448
+
+## pass rate per model per difficulty (train only)
+difficulty   easy   hard  medium
+model                           
+gpt-oss     0.907  0.169   0.506
+qwen3       0.810  0.111   0.435
+
+problems per difficulty (train):
+difficulty  easy  hard  medium
+model                         
+gpt-oss      164   173     190
+qwen3        164   173     190
+
+## empty program rate per model per split
+split    train  validation
+model                     
+gpt-oss  0.428       0.468
+qwen3    0.264       0.284
+
+pass rate of empty programs (train + validation): 0.0
+
+## generations with no logprobs
+count: 0
+tokens per output, median by model:
+model
+gpt-oss    1468.0
+qwen3       874.0
+
+## code span checks
+span [0,0] but program non empty: 606
+program empty but span not [0,0]: 0
+span end beyond token count: 0
+
+## logprob range
+max: 0.0 min: -3.8610258 share exactly 0: 0.13

@@ -92,3 +92,41 @@ Source: `github.com/violacampos/multicalibration`, commit `c9b7e5d` (2026-01-20)
 
 Repo numbers from `reference/results/livecodebench_*/output/scores_avg_prob.txt`. Group methods differ slightly between paper and repo; group-agnostic ones match.
 
+
+## 2026-10-04
+
+### Phase 1: data loading and validation
+
+Dataset `lavis-nlp/CALIBRI` revision `7a4a7dc7` (same commit as `violasara/CALIBRI`, which their code loads). `src/calib/data.py` explodes to one row per generation, logprobs as float32 arrays. Train and validation go to `data/rows.parquet`, test to `data/rows_test.parquet`. `load_rows()` only returns test when called with `include_test=True`. Token strings are dropped from the cache; `load_raw` reads them from the HF cache when needed. Full check output: `runs/phase1/checks.txt`.
+
+All checks pass:
+* rows 5270 / 2640 / 2640 per model, problems 527 / 264 / 264
+* no problem in two splits; same IDs, split, prompt, and difficulty for both models
+* no generation without logprobs; no code span past the token count
+
+Test split: used for IDs and counts only. No test labels looked at.
+
+| | Qwen3 | GPT OSS |
+|---|---|---|
+| pass rate train | 0.445 | 0.520 |
+| pass rate validation | 0.448 | 0.495 |
+| empty program rate train | 0.264 | 0.428 |
+| empty program rate validation | 0.284 | 0.468 |
+| median tokens per output | 874 | 1468 |
+| outputs truncated at 2000 tokens | 0.274 | 0.436 |
+
+Train pass rate by difficulty: Qwen3 easy 0.810, medium 0.435, hard 0.111. GPT OSS easy 0.907, medium 0.506, hard 0.169.
+
+Surprises:
+* **Generation was capped at 2000 tokens.** Every empty program I looked at stopped at exactly 2000. Truncated outputs are mostly empty programs and almost always fail. GPT OSS outputs that finish pass 92% of the time (4363 rows); truncated non-empty ones pass 49% (55 rows). Qwen3 finished outputs pass 66%; truncated non-empty ones pass 2%. So for GPT OSS, "did it finish" explains most of the label. This is label free and known at inference, so it's a legal feature for RQ2. It also explains why `len_high` helps GPT OSS so much in Campos Table 1.
+* Empty programs: pass rate exactly 0.
+* 606 rows (455 Qwen3, 151 GPT OSS) have a non-empty `program` but a `[0, 0]` code span. The extracted program isn't marked in the token stream, often reasoning text that the extractor picked up. Pass rate 0.327. Their `code_prob` gives these 0.0.
+* 13% of sampled token logprobs are exactly 0.
+
+Manual examples (train): pass and fail spans contain the fenced Python block, and `program` matches the span text. Empty programs have span `[0, 0]` and 2000 tokens, cut off mid reasoning.
+
+Explain:
+* One row is one generation: one of the 10 attempts at one problem by one model, with its tokens, logprobs, extracted code, and pass/fail.
+* The 10 rows of a problem share the problem's difficulty, so they pass or fail together. They are not 10 independent pieces of evidence.
+* Splitting by problem keeps near-duplicate attempts at the same problem from landing on both sides, which would leak.
+* Routing compares Qwen3 and GPT OSS on the same problem, so both need the same IDs with the same split. Checked: they do.
