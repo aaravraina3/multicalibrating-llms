@@ -73,3 +73,37 @@ def calibrated(rows, G, model, start, method, eval_role, cols, chosen):
     out = rows.loc[ev_mask, ["task_id", "sample_idx", "y"]].copy()
     out["q"] = np.clip(q, 0, 1)
     return out
+
+
+def base_preds_with_test():
+    """Dev base predictions plus test predictions from base models refit on base_train with the frozen
+    Phase 9 hyperparameters. Same computation as experiments/final.py; cached after the first call."""
+    import json
+    from pathlib import Path
+
+    from calib.base_model import VARIANTS, fit_fixed
+    from calib.data import load_rows
+    from calib.features import build_features, prepare_matrix
+
+    cache = DATA_DIR / "base_preds_with_test.parquet"
+    if cache.exists():
+        return pd.read_parquet(cache)
+    splits = json.loads(Path("runs/phase9/splits.json").read_text())
+    hyper = json.loads(Path("runs/phase9/chosen_hyperparameters.json").read_text())
+    dev, base_preds = load_rows(), load_base_preds()
+    all_rows = load_rows(include_test=True)
+    test = all_rows[all_rows.split == "test"]
+    feats_dev, feats_test = pd.read_parquet(DATA_DIR / "features.parquet"), build_features(test)
+    dev["role"] = assign(dev, splits)
+    extra = test[["task_id", "sample_idx", "model", "y"]].assign(role="test")
+    for model in ["qwen3", "gpt-oss"]:
+        tr = ((dev.model == model) & (dev.role == "base_train")).to_numpy()
+        m_te = (test.model == model).to_numpy()
+        for name, (kind, blocks) in VARIANTS.items():
+            X_dev, _ = prepare_matrix(feats_dev, blocks)
+            X_te, _ = prepare_matrix(feats_test, blocks)
+            est = fit_fixed(kind, tuple(hyper[f"{model}/{name}"]["params"]), X_dev[tr], dev.y.to_numpy()[tr])
+            extra.loc[m_te, name] = est.predict_proba(X_te[m_te])[:, 1]
+    out = pd.concat([base_preds, extra], ignore_index=True)
+    out.to_parquet(cache)
+    return out

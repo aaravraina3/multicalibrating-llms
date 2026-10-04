@@ -587,3 +587,11 @@ Secondary: Platt vs uncalibrated P4 decisions identical in all 16 cases (test). 
 Explain:
 * The protocol is written before the test run so the test can only confirm or reject choices already made. If I picked settings after seeing test numbers, test would turn into a second validation set and the reported numbers would be optimistic.
 * If asked whether I tuned on test: no. Every setting is in `PROTOCOL.md` at tag `v-final`, the final run is commit `8f1de29`, and the notebook logs every change made after any test look (RQ1 had zero bug fixes). The only earlier test use was the Phase 8 replication, under a bug-fix-only rule written before looking.
+
+### Phase 14: analysis and writeup
+
+* `PAPER.pdf` (11 pages) at the repo root, built by `experiments/make_pdf.py` from `REPORT.md` (kept local) with headless Chrome. README leads with the paper link and lists exact commands to rerun everything.
+* Figures (`runs/8f1de29/figures/`, from `experiments/figures.py`): test reliability diagrams, group calibration scatter, IGHB stopping threshold sweep. Plus `runs/8f1de29/rq3/tradeoff_curves.png` and `runs/8f1de29/rq4/brier_change_vs_size.png` from the final run. The figure script recomputes test predictions with the frozen settings; its BSS values match `rq2.csv` exactly.
+* `src/calib/rq_setup.py` gained `base_preds_with_test()`, the same test base model computation as `final.py`, cached to `data/base_preds_with_test.parquet`, so later scripts don't need to rerun the final.
+* Checked before writing: in the Qwen3 B2 group scatter, the two off-diagonal groups are `comp_hard` (predicted 0.204, pass 0.062) and `uses_imports` (0.403 vs 0.288). IGLB made no patches on B2 because its 63 problem early stopping set showed no gain.
+* Limitations listed in the paper: one benchmark; public data, no execution by me; test-based labels; two similar sized models; assumed costs; 10 samples at inference for self consistency; difficulty is metadata; empty programs; the 2000 token cap; small calib set; bootstrap ignores refit variation; hand made groups.
