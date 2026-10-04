@@ -1,6 +1,6 @@
 # multicalibrating-llms
 
-**Read the paper: [Multicalibration for code LLMs: large gains from raw token probability, almost none from a decent model (PDF)](PAPER.pdf)**
+**Read my paper on this: [When Does Multicalibration Help Code LLMs? (PDF)](PAPER.pdf)**
 
 Reimplements the calibration and multicalibration methods from Campos et al. (2025) on CALIBRI (LiveCodeBench, Qwen3 Coder and GPT OSS), replicates their results, then tests whether multicalibration still helps when the starting score is a feature model, and whether it changes routing decisions between the two models.
 
