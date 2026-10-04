@@ -407,3 +407,52 @@ Explain:
 * The base model trains on base_train and the calibrators on calib so the calibrator sees the base model's honest errors. On its own training rows the base model looks better calibrated than it is, and a calibrator fit there would learn to fix nothing.
 * Self consistency is allowed because it only compares code text across samples; it never looks at pass/fail. Leakage would be, for example, similarity to the passing samples, or the share of others that pass. The label flip test would catch that.
 * A big coefficient doesn't mean an important feature: features are correlated (truncated, empty code, output tokens), so the model can split weight between them arbitrarily, and coefficient size also depends on scaling. The ablation measures importance directly.
+
+### Phase 10: RQ2 experiments (validation only)
+
+`src/calib/rq_setup.py`, `experiments/rq2_base_strength.py`, outputs in `runs/phase10/`. `PROTOCOL.md` started.
+
+Decisions:
+* Calibrators fit on calib (211 problems). IGLB needs an early stopping set; using official validation would make every validation number optimistic, so IGLB fits on `calib_fit` (148 problems) and stops on `calib_stop` (63). Validation stays clean for all methods.
+* Platt input picked per starting score on validation (best of raw p, log p, logit p), so the baseline is as strong as it can be. A weak Platt would inflate multicalibration's gains.
+* LINR, IGHB, IGLB use the code versions (no rounding; rounding hurt in Phase 7).
+* IGHB alpha and IGLB epsilon picked once, globally, by mean validation BSS over both models, 4 starting scores, 2 group sets. Alpha: 0.05 gives 0.642, 0.01 gives 0.675, 0.003 gives 0.693 (chosen), 0.001 gives 0.678, 0.0003 gives 0.639. Epsilon 0.005, 0.01, 0.02 tie at 0.693 (the calib_stop rule stops IGLB first), so I kept the Campos default 0.01.
+* Minimum group size stays at 40 train problems (Phase 6).
+* Primary group set excludes difficulty (deployment realistic); secondary includes it.
+
+Validation BSS, no difficulty groups:
+
+| model | start | uncalibrated | Platt | HB | LINR | IGHB | IGLB |
+|---|---|---|---|---|---|---|---|
+| Qwen3 | avg_prob | -0.549 | 0.382 | 0.377 | 0.408 | 0.380 | 0.382 |
+| Qwen3 | B1 | 0.563 | 0.572 | 0.557 | 0.558 | 0.556 | 0.563 |
+| Qwen3 | B2 | 0.585 | 0.587 | 0.573 | 0.575 | 0.576 | 0.585 |
+| Qwen3 | B3 | 0.520 | 0.542 | 0.533 | 0.533 | 0.530 | 0.520 |
+| GPT OSS | avg_prob | -0.098 | 0.211 | 0.221 | 0.830 | 0.822 | 0.848 |
+| GPT OSS | B1 | 0.872 | 0.879 | 0.874 | 0.872 | 0.870 | 0.878 |
+| GPT OSS | B2 | 0.878 | 0.883 | 0.879 | 0.878 | 0.874 | 0.882 |
+| GPT OSS | B3 | 0.879 | 0.882 | 0.877 | 0.879 | 0.877 | 0.879 |
+
+Multicalibration minus Platt, validation BSS, 95% task clustered bootstrap (no difficulty groups; full list with difficulty in `rq2_validation_diffs.csv`):
+
+| model | start | LINR | IGHB | IGLB |
+|---|---|---|---|---|
+| Qwen3 | avg_prob | +0.022 [-0.018, 0.061] | -0.002 [-0.037, 0.032] | +0.001 [-0.032, 0.032] |
+| Qwen3 | B2 | -0.014 [-0.033, 0.004] | -0.011 [-0.037, 0.015] | -0.002 [-0.012, 0.007] |
+| GPT OSS | avg_prob | +0.619 [0.556, 0.689] | +0.611 [0.548, 0.682] | +0.637 [0.572, 0.708] |
+| GPT OSS | B2 | -0.005 [-0.010, -0.001] | -0.009 [-0.018, -0.002] | -0.000 [-0.007, 0.005] |
+
+With difficulty groups, Qwen3 avg_prob: LINR +0.079 [0.028, 0.129], IGHB +0.051 [-0.002, 0.101]. Qwen3 B2: LINR +0.013 [-0.019, 0.044], IGLB +0.014 [-0.023, 0.053].
+
+What it says about the hypothesis:
+* Supported. From raw token probability, multicalibration beats Platt by 0.6 BSS on GPT OSS. From any feature based start (B1, B2, B3), every multicalibration method is within about 0.02 of Platt, and on GPT OSS LINR and IGHB are slightly but clearly worse.
+* Qwen3 from avg_prob only gains when difficulty is a group. The deployment realistic groups add little for Qwen3 because its failures aren't mostly truncation.
+* Difficulty groups still help Qwen3 a bit on top of B1/B2, because the base models never see difficulty. That's new information, not better calibration.
+* Max gASCE (worst group calibration) doesn't improve over Platt for strong starts either. For Qwen3 B2: Platt 0.030, LINR 0.052, IGHB 0.062, IGLB 0.035. With 211 calib problems, group corrections add noise.
+* IGLB often makes zero patches on strong starts (equal to uncalibrated): the calib_stop rule sees no gain. That's the safe failure mode.
+* AUROC: for strong starts, multicalibration slightly lowers ranking quality (GPT OSS B2: 0.989 Platt vs 0.983 LINR).
+* Matches Hansen et al. 2024: multicalibration post processing helps most when the base model is weak or uncalibrated on the groups.
+
+Explain:
+* The table says multicalibration's big wins in Campos come from starting at a score that knows nothing about the groups. A logistic model trained with log loss on features that define the groups is already roughly calibrated on them (its gradient conditions force average residual 0 along each feature), so there's little left to fix.
+* Settings were chosen on validation; test is used once in Phase 13. Picking settings by test score would make test an optimistic estimate, the same overfitting problem as the winner's curse, one level up.

@@ -1,0 +1,64 @@
+{
+ "ighb_alpha": 0.003,
+ "iglb_epsilon": 0.01,
+ "platt_version": {
+  "gpt-oss/B1": "logit",
+  "gpt-oss/B2": "logit",
+  "gpt-oss/B3": "logit",
+  "gpt-oss/avg_prob": "paper",
+  "qwen3/B1": "logit",
+  "qwen3/B2": "logit",
+  "qwen3/B3": "paper",
+  "qwen3/avg_prob": "paper"
+ },
+ "group_sets": {
+  "qwen3": {
+   "no_difficulty": [
+    "loc_high",
+    "prompt_len_high",
+    "len_high",
+    "nested",
+    "uses_imports",
+    "syntax_invalid",
+    "truncated",
+    "all"
+   ],
+   "with_difficulty": [
+    "loc_high",
+    "prompt_len_high",
+    "len_high",
+    "comp_easy",
+    "comp_medium",
+    "comp_hard",
+    "nested",
+    "uses_imports",
+    "syntax_invalid",
+    "truncated",
+    "all"
+   ]
+  },
+  "gpt-oss": {
+   "no_difficulty": [
+    "loc_high",
+    "prompt_len_high",
+    "len_high",
+    "nested",
+    "uses_imports",
+    "truncated",
+    "all"
+   ],
+   "with_difficulty": [
+    "loc_high",
+    "prompt_len_high",
+    "len_high",
+    "comp_easy",
+    "comp_medium",
+    "comp_hard",
+    "nested",
+    "uses_imports",
+    "truncated",
+    "all"
+   ]
+  }
+ }
+}
