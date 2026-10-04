@@ -1,0 +1,32 @@
+## qwen3
+|--- nesting <= 4.500
+|   |--- branches <= 0.500
+|   |   |--- log_prompt_chars <= 7.221
+|   |   |   |--- value: [0.015]
+|   |   |--- log_prompt_chars >  7.221
+|   |   |   |--- value: [-0.047]
+|   |--- branches >  0.500
+|   |   |--- value: [0.121]
+|--- nesting >  4.500
+|   |--- value: [-0.066]
+
+leaf 3: rows 428, problems 65, mean residual +0.015
+leaf 4: rows 438, problems 63, mean residual -0.047
+leaf 5: rows 681, problems 107, mean residual +0.121
+leaf 6: rows 563, problems 85, mean residual -0.066
+## gpt-oss
+|--- branches <= 2.500
+|   |--- code_mean <= -0.022
+|   |   |--- value: [-0.030]
+|   |--- code_mean >  -0.022
+|   |   |--- avg_prob <= 0.674
+|   |   |   |--- value: [-0.003]
+|   |   |--- avg_prob >  0.674
+|   |   |   |--- value: [0.002]
+|--- branches >  2.500
+|   |--- value: [0.045]
+
+leaf 2: rows 403, problems 82, mean residual -0.030
+leaf 4: rows 460, problems 92, mean residual -0.003
+leaf 5: rows 570, problems 143, mean residual +0.002
+leaf 6: rows 677, problems 115, mean residual +0.045

@@ -353,3 +353,57 @@ Explain:
 * Replicate first because extensions only mean something if the base pipeline is right. If our Platt or IGLB were off, RQ2 and RQ3 differences could be our bugs.
 * A mismatch could mean a bug, a different setting (medians, rounding, regularization), a different data version, or randomness. Here the one systematic mismatch traced to a setting.
 * Test is allowed here under the bug-fix-only rule: nothing tuned after looking, so the numbers stay an honest check rather than a target I optimized for.
+
+### Phase 9: features and base predictors (RQ2 setup)
+
+`src/calib/splits.py`, `src/calib/features.py`, `src/calib/base_model.py`, `experiments/base_models.py`, `tests/test_features.py` (25 tests pass, including one that flips every label and checks the features don't change). Outputs in `runs/phase9/`; features cached to `data/features.parquet`, base model predictions to `data/base_preds.parquet`.
+
+Split: official train problems sorted by `sha256("calib-routing-2026" + id)`; first 316 go to `base_train`, last 211 to `calib`. Same assignment for both models (`runs/phase9/splits.json`).
+
+Features (one row per generation, no labels):
+* avg: avg_prob
+* size: log1p prompt chars, code chars, code lines, output tokens; `truncated` (hit 2000 tokens, my addition from Phase 1)
+* logprob: mean, 10th percentile, std, share below -2, over all tokens and over code tokens; missing flag when no code span
+* structure (Python `ast`): max block nesting, branches, loops, functions, imports, `syntax_valid`, `empty_code`, missing flag
+* self consistency (leave one out vs the other 9 samples of the same problem and model): share of others empty, mean `SequenceMatcher` ratio of normalized code (comments stripped, whitespace collapsed), share identical. Caveat: assumes 10 samples at inference, 10x the generation cost.
+* NaNs filled with 0; every NaN source has a missing flag.
+* Difficulty is never a base model feature.
+
+Base models fit on base_train, picked by validation log loss. Logistic: `StandardScaler` + `LogisticRegression`, C from {0.01, 0.1, 1, 10}. B3: `HistGradientBoostingClassifier`, 8 leaves, `min_samples_leaf=50`, `early_stopping=False`, `max_iter` from {50, 100, 200, 400} x `learning_rate` from {0.03, 0.1}.
+
+| model | variant | chosen | val BSS | val log loss | val ECE | val AUROC |
+|---|---|---|---|---|---|---|
+| Qwen3 | B0 avg_prob only | C=10 | 0.386 | 0.461 | 0.037 | 0.853 |
+| Qwen3 | B1 no self consistency | C=1 | 0.563 | 0.329 | 0.045 | 0.933 |
+| Qwen3 | B2 all features | C=0.01 | 0.585 | 0.317 | 0.045 | 0.939 |
+| Qwen3 | B3 boosting | 100 trees, lr 0.03 | 0.520 | 0.356 | 0.081 | 0.922 |
+| GPT OSS | B0 | C=0.1 | 0.212 | 0.590 | 0.055 | 0.768 |
+| GPT OSS | B1 | C=1 | 0.872 | 0.115 | 0.021 | 0.986 |
+| GPT OSS | B2 | C=1 | 0.878 | 0.108 | 0.019 | 0.989 |
+| GPT OSS | B3 | 200 trees, lr 0.03 | 0.879 | 0.107 | 0.016 | 0.989 |
+
+Already, before any multicalibration, B2 beats every Campos method from Phase 7 (best there: IGLB 0.465 / 0.827). The features do the work.
+
+Ablation (B2 minus one block, C re-picked, validation):
+
+| dropped | Qwen3 log loss | Qwen3 AUROC | GPT OSS log loss | GPT OSS AUROC |
+|---|---|---|---|---|
+| none | 0.317 | 0.939 | 0.108 | 0.989 |
+| logprob (and avg) | 0.326 | 0.933 | 0.104 | 0.991 |
+| structure | 0.317 | 0.935 | 0.109 | 0.990 |
+| size | 0.318 | 0.939 | 0.110 | 0.988 |
+| self consistency | 0.329 | 0.933 | 0.115 | 0.986 |
+
+Self consistency is the most useful block for both. Dropping token logprobs slightly helps GPT OSS: once truncation and code presence are known, token confidence adds noise there. Blocks overlap a lot (truncation shows up in size, empty code, and self consistency), so no single drop hurts much.
+
+Boosting (B3) is worse than logistic for Qwen3 and badly calibrated (ECE 0.081): 316 problems is small for trees.
+
+Tree auditor (depth 3, at least 400 rows per leaf, on B2 residuals in calib; `runs/phase9/tree_auditor.txt`). Every leaf has at least 63 problems.
+* Qwen3: code with nesting <= 4 and at least one branch is under-predicted by 0.121 (107 problems); nesting > 4 over-predicted by 0.066 (85 problems). B2 misses a structure interaction a group could catch.
+* GPT OSS: residuals within 0.045 everywhere.
+* Caveat: leaf residuals are measured on the rows the tree was fit to, so they are adaptive and somewhat inflated (Phase 2 winner's curse).
+
+Explain:
+* The base model trains on base_train and the calibrators on calib so the calibrator sees the base model's honest errors. On its own training rows the base model looks better calibrated than it is, and a calibrator fit there would learn to fix nothing.
+* Self consistency is allowed because it only compares code text across samples; it never looks at pass/fail. Leakage would be, for example, similarity to the passing samples, or the share of others that pass. The label flip test would catch that.
+* A big coefficient doesn't mean an important feature: features are correlated (truncated, empty code, output tokens), so the model can split weight between them arbitrarily, and coefficient size also depends on scaling. The ablation measures importance directly.

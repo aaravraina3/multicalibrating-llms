@@ -1,0 +1,60 @@
+{
+ "qwen3/B0": {
+  "kind": "logistic",
+  "params": [
+   10
+  ],
+  "n_features": 1
+ },
+ "qwen3/B1": {
+  "kind": "logistic",
+  "params": [
+   1
+  ],
+  "n_features": 23
+ },
+ "qwen3/B2": {
+  "kind": "logistic",
+  "params": [
+   0.01
+  ],
+  "n_features": 27
+ },
+ "qwen3/B3": {
+  "kind": "boosting",
+  "params": [
+   100,
+   0.03
+  ],
+  "n_features": 27
+ },
+ "gpt-oss/B0": {
+  "kind": "logistic",
+  "params": [
+   0.1
+  ],
+  "n_features": 1
+ },
+ "gpt-oss/B1": {
+  "kind": "logistic",
+  "params": [
+   1
+  ],
+  "n_features": 23
+ },
+ "gpt-oss/B2": {
+  "kind": "logistic",
+  "params": [
+   1
+  ],
+  "n_features": 27
+ },
+ "gpt-oss/B3": {
+  "kind": "boosting",
+  "params": [
+   200,
+   0.03
+  ],
+  "n_features": 27
+ }
+}
