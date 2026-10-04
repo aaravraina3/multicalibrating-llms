@@ -58,14 +58,15 @@ def save_thresholds(thresholds, path):
         json.dump(thresholds, f, indent=2)
 
 
-def build_groups(rows, names=REPLICATION):
-    """Group matrix for all rows, thresholds fit per model on that model's train rows only."""
+def build_groups(rows, names=REPLICATION, fit_splits=("train",)):
+    """Group matrix for all rows, thresholds fit per model on that model's rows in fit_splits.
+    Default is train only. fit_splits=("train", "validation", "test") reproduces their pooled medians."""
     props = raw_properties(rows)
     G = np.zeros((len(rows), len(names)), bool)
     thresholds = {}
     for model in rows.model.unique():
         m = (rows.model == model).to_numpy()
-        thresholds[model] = fit_thresholds(props[m & (rows.split == "train").to_numpy()])
+        thresholds[model] = fit_thresholds(props[m & rows.split.isin(fit_splits).to_numpy()])
         G[m] = group_matrix(props[m], thresholds[model], names)
     return G, thresholds
 

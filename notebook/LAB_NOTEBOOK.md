@@ -326,3 +326,30 @@ Explain:
 ### Phase 8: replication checkpoint (RQ1)
 
 Rule, written before looking at any test number: after seeing these test numbers I may only fix bugs. Every fix gets logged here with what changed and why. No setting changes. Tagged `v-replication` before the first test run.
+
+`experiments/rq1_replication.py`, output `runs/phase8/rq1_test.csv`. avg_prob, code faithful versions, replication groups, fit on train, IGLB early stops on validation, scored on test. Run twice: medians from train only (our rule) and medians pooled over all splits (their code).
+
+Test BSS (ACC in the csv):
+
+| method | Qwen3 ours, train medians | Qwen3 paper | Qwen3 ours, pooled | Qwen3 repo | GPT OSS ours, train medians | GPT OSS paper | GPT OSS ours, pooled | GPT OSS repo |
+|---|---|---|---|---|---|---|---|---|
+| uncalibrated | -0.543 | -0.543 | -0.543 | -0.543 | -0.075 | -0.075 | -0.075 | -0.075 |
+| Platt | 0.377 | 0.377 | 0.377 | 0.377 | 0.187 | 0.187 | 0.187 | 0.187 |
+| HB | 0.383 | 0.383 | 0.383 | 0.383 | 0.237 | 0.237 | 0.237 | 0.237 |
+| LINR | 0.463 | 0.463 | 0.463 | 0.463 | 0.721 | 0.721 | 0.732 | 0.732 |
+| LOGR | 0.306 | 0.306 | 0.303 | 0.303 | 0.733 | 0.733 | 0.727 | 0.727 |
+| IGHB | 0.232 | 0.232 | 0.224 | 0.224 | 0.412 | 0.412 | 0.428 | 0.428 |
+| IGLB | 0.478 | 0.480 | 0.468 | 0.468 | 0.768 | 0.764 | 0.758 | 0.758 |
+
+Result:
+* Pooled medians reproduce their repo's results file to 6 decimals on 13 of 14 numbers (BSS and accuracy). The 14th, GPT OSS IGHB, differs by 0.00001 (0.428307 vs 0.428296), float noise.
+* Train-only medians reproduce the paper's Table 1 to its printed 3 decimals for every method except IGLB (Qwen3 0.478 vs 0.480, GPT OSS 0.768 vs 0.764; accuracy within 0.005).
+* So the paper vs repo gap is the median convention. The paper's numbers look like they came from train-only medians, and the current repo pools all splits. My guess is an earlier version of their code computed medians per split. The remaining IGLB gap is small and in both directions; likely an optimizer or code version difference in the patch fit.
+* Method ordering matches: IGLB and LINR top, then LOGR, then HB and Platt, then IGHB, all above uncalibrated.
+
+Bug fixes after seeing test: none.
+
+Explain:
+* Replicate first because extensions only mean something if the base pipeline is right. If our Platt or IGLB were off, RQ2 and RQ3 differences could be our bugs.
+* A mismatch could mean a bug, a different setting (medians, rounding, regularization), a different data version, or randomness. Here the one systematic mismatch traced to a setting.
+* Test is allowed here under the bug-fix-only rule: nothing tuned after looking, so the numbers stay an honest check rather than a target I optimized for.
