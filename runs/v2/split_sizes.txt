@@ -1,0 +1,10 @@
+                       rows  problems  pass_rate
+model   role                                    
+gpt-oss base_train     3160       316      0.533
+        calib          2110       211      0.501
+        val_conformal  1320       132      0.503
+        val_tune       1320       132      0.487
+qwen3   base_train     3160       316      0.450
+        calib          2110       211      0.438
+        val_conformal  1320       132      0.428
+        val_tune       1320       132      0.467

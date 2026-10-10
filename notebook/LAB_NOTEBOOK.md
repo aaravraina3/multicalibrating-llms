@@ -595,3 +595,25 @@ Explain:
 * `src/calib/rq_setup.py` gained `base_preds_with_test()`, the same test base model computation as `final.py`, cached to `data/base_preds_with_test.parquet`, so later scripts don't need to rerun the final.
 * Checked before writing: in the Qwen3 B2 group scatter, the two off-diagonal groups are `comp_hard` (predicted 0.204, pass 0.062) and `uses_imports` (0.403 vs 0.288). IGLB made no patches on B2 because its 63 problem early stopping set showed no gain.
 * Limitations listed in the paper: one benchmark; public data, no execution by me; test-based labels; two similar sized models; assumed costs; 10 samples at inference for self consistency; difficulty is metadata; empty programs; the 2000 token cap; small calib set; bootstrap ignores refit variation; hand made groups.
+
+## 2026-10-10: v2
+
+v2 adds boosted multicalibration with learned groups, an XGBoost base model with grouped Bayesian search, TreeSHAP interpretation with ablations, a transformer over token confidence trajectories, conformal risk control for routing, a Murphy Brier decomposition, and Holm corrected comparisons. **v2 was designed after seeing the v1 test results**, so its test numbers are a second look at the same test set, not a fresh one. Settings in `PROTOCOL_V2.md`.
+
+### Phase V0: protocol and setup
+
+Tagged `v1-final`. `PROTOCOL_V2.md` skeleton committed. Installed xgboost 3.2.0, optuna 5.0.0, shap 0.51.0, torch 2.14.1 (pinned in `requirements.txt`).
+
+### Phase V0.5: data roles
+
+Official validation split by `sha256("calib-routing-v2-2026" + id)` into `val_tune` and `val_conformal` (`runs/v2/splits_v2.json`). `base_train` and `calib` are the v1 split. `tests/test_splits_v2.py` checks no problem is in two roles and the roles cover all 1055 problems.
+
+| role | problems | Qwen3 pass rate | GPT OSS pass rate |
+|---|---|---|---|
+| base_train | 316 | 0.450 | 0.533 |
+| calib | 211 | 0.438 | 0.501 |
+| val_tune | 132 | 0.467 | 0.487 |
+| val_conformal | 132 | 0.428 | 0.503 |
+| test | 264 | (not looked at) | (not looked at) |
+
+v2 fits every calibrator on calib, including on raw avg_prob, so v2 avg_prob numbers differ from the Phase 8 replication (fit on full train). Both are reported.
