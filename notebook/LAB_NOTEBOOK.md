@@ -810,3 +810,38 @@ Explain:
 * Better calibrated scores don't escalate less here because the threshold is learned on the same ranking. Calibration helps only if it changes the ranking, which group methods can do.
 * Calibration vs discrimination: reliability is miscalibration; resolution is how far the bins' pass rates spread from the overall rate. Recalibration that only relabels scores can shrink reliability but can't add resolution; group methods can, because they bring new information.
 * Many comparisons need a correction: with 28 tests at 0.05, about 1.4 look significant by chance. Holm sorts p values and multiplies the smallest by 28, the next by 27, and so on, which controls the chance of any false positive.
+
+### Phase V8: freeze and v2 test run
+
+`PROTOCOL_V2.md` completed (methods, frozen SHAP groups, the 28 comparison Holm family, conformal targets, seeds, run commands), committed, tagged `v2-final` (commit `0bd9043`). 40 tests pass. Then, once: `v2_predict_traj --with-test` (CPU replay matches saved dev predictions to 1e-7), `v2_run --role test`, `v2_summary`. Output `runs/0bd9043/` with `v2_summary.md`. No bugs found after the run; nothing rerun.
+
+Test BSS, calibrators fit on calib:
+
+| model | start | uncal | Platt | LINR | IGLB | BMC |
+|---|---|---|---|---|---|---|
+| Qwen3 | avg_prob | -0.543 | 0.390 | 0.452 | 0.409 | 0.454 |
+| Qwen3 | B2 | 0.560 | 0.559 | 0.560 | 0.560 | 0.559 |
+| Qwen3 | B4 | 0.538 | 0.527 | 0.552 | 0.535 | 0.534 |
+| Qwen3 | B6 | 0.501 | 0.507 | 0.522 | 0.508 | 0.501 |
+| GPT OSS | avg_prob | -0.075 | 0.197 | 0.773 | 0.789 | 0.497 |
+| GPT OSS | B2 | 0.820 | 0.823 | 0.819 | 0.821 | 0.820 |
+| GPT OSS | B4 | 0.825 | 0.825 | 0.823 | 0.825 | 0.824 |
+| GPT OSS | B7 | 0.825 | 0.825 | 0.823 | 0.825 | 0.823 |
+
+Holm (28 comparisons on test Brier): 4 significant after correction, all from raw avg_prob: Qwen3 LINR vs Platt (-0.015 [-0.025, -0.006]) and GPT OSS LINR, IGLB, BMC vs Platt (-0.144, -0.148, -0.075). Qwen3 BMC vs Platt from avg_prob (-0.016, unadjusted p 0.010) doesn't survive. None of the 18 comparisons from learned starting scores is significant (largest: Qwen3 B4 LINR -0.006, unadjusted p 0.089). XGBoost vs logistic and transformer vs XGBoost: not significant for either model (Qwen3 B4 - B2 +0.006 [-0.002, 0.013] Brier; B6 - B4 +0.009 [-0.002, 0.020]).
+
+Boosted multicalibration's discovered groups (test, same fits): from Qwen3 avg_prob it reaches BSS 0.454, the best of all calibrators there, and its worst-group error drops from 0.665 to 0.071 on the hand groups. From GPT OSS avg_prob it reaches 0.497, well below IGLB's 0.789 (it stops after 6 rounds).
+
+Three group sets on B4 (test): the val_tune advantage of SHAP groups did not replicate. For Qwen3, IGLB's one patch with either hand or SHAP groups makes the worst-group error worse (0.029 uncalibrated, 0.041 hand, 0.046 SHAP) and Brier slightly worse. For GPT OSS nothing changes (only the discovered set patches once; Brier 0.0437 vs 0.0438).
+
+**Conformal risk control (V5) violated its targets on test:**
+
+| target | realized risk on test | escalation | system pass | oracle at same budget | regret |
+|---|---|---|---|---|---|
+| 0.05 | 0.063 | 0.577 | 0.549 | 0.614 | 0.066 |
+| 0.10 | 0.141 | 0.438 | 0.542 | 0.614 | 0.073 |
+| 0.15 | 0.195 | 0.357 | 0.536 | 0.614 | 0.078 |
+
+Explanation (diagnostics only, no setting changed): at the threshold chosen for 0.10, val_conformal's loss was 0.093 (SE 0.021, by problem) and test's is 0.141 (SE 0.017); the gap is about 1.8 combined standard errors. Test's accepted Qwen3 answers fail more often than val_conformal's at the same B2 scores (25.1% vs 19.7%), so B2 is more overconfident on test's high scoring answers. This matches v1, where B2's BSS was lower on test (0.560) than on validation (0.585). The guarantee is marginal over draws of the calibration set: in the simulation, a single 132 problem draw exceeded its target 20 to 37% of the time. One draw of 132 problems, a mildly harder test split, and a guarantee that only holds on average together account for it. On val_tune the same thresholds stayed under target (0.045, 0.084, 0.133). As on validation, uncalibrated, Platt, and IGLB scores give identical decisions; boosted multicalibration differs only at 0.05.
+
+Distribution shift (V7, test) repeats the validation pattern: Qwen3 to GPT OSS is very conservative (accepts 9% at target 0.10, risk 0.005); GPT OSS to Qwen3 breaks the guarantee badly (risk 0.40 at target 0.10, 0.30 at 0.05). B2's BSS falls from 0.82 to -0.12 (Qwen3 fit, GPT OSS evaluated) and from 0.56 to 0.06 (the reverse).
