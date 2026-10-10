@@ -24,6 +24,7 @@ from calib.v2_setup import load_features, prepare_v2, v2_preds_path
 SEEDS = [0, 1, 2, 3, 4]
 INNER_SALT = "calib-routing-v2-inner"
 MODEL_DIR = DATA_DIR / "trajectory_models"
+DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"  # training only; inference runs on the CPU
 
 
 def tensors_for(rows, cache):
@@ -55,7 +56,7 @@ def train_all(rows, X, seq, pad, scalar):
         for name, ex in [("B6", None), ("B7", extra)]:
             seed_preds, epochs = [], []
             for seed in SEEDS:
-                net, hist = train_one(s_seq, pad, s_scalar, ex, y, tr, va, seed)
+                net, hist = train_one(s_seq, pad, s_scalar, ex, y, tr, va, seed, device=DEVICE)
                 torch.save(net.state_dict(), MODEL_DIR / f"{name}_{model}_seed{seed}.pt")
                 seed_preds.append(predict(net, s_seq[m], pad[m], s_scalar[m], None if ex is None else ex[m]))
                 epochs.append({"seed": seed, "epochs_run": len(hist), "best_epoch": int(np.argmin(hist)) + 1,

@@ -1,0 +1,78 @@
+[
+ {
+  "name": "log_code_lines <= 2.77",
+  "conditions": [
+   [
+    "log_code_lines",
+    "<=",
+    2.772588722239781
+   ]
+  ],
+  "base_train_problems": 246
+ },
+ {
+  "name": "sc_mean_sim > 0.373",
+  "conditions": [
+   [
+    "sc_mean_sim",
+    ">",
+    0.3729392698462427
+   ]
+  ],
+  "base_train_problems": 203
+ },
+ {
+  "name": "syntax_valid <= 0.5",
+  "conditions": [
+   [
+    "syntax_valid",
+    "<=",
+    0.5
+   ]
+  ],
+  "base_train_problems": 197
+ },
+ {
+  "name": "sc_others_empty <= 0.222",
+  "conditions": [
+   [
+    "sc_others_empty",
+    "<=",
+    0.2222222222222222
+   ]
+  ],
+  "base_train_problems": 175
+ },
+ {
+  "name": "log_code_chars > 5.85 & sc_mean_sim > 0.373",
+  "conditions": [
+   [
+    "log_code_chars",
+    ">",
+    5.849324779946859
+   ],
+   [
+    "sc_mean_sim",
+    ">",
+    0.3729392698462427
+   ]
+  ],
+  "base_train_problems": 191
+ },
+ {
+  "name": "log_code_lines <= 2.77 & sc_mean_sim > 0.373",
+  "conditions": [
+   [
+    "log_code_lines",
+    "<=",
+    2.772588722239781
+   ],
+   [
+    "sc_mean_sim",
+    ">",
+    0.3729392698462427
+   ]
+  ],
+  "base_train_problems": 65
+ }
+]

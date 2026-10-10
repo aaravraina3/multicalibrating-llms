@@ -1,0 +1,5 @@
+group_set,groups,val_tune_brier,max_gasce_union,slices_checked,slices_over_2se,iglb_patches,note
+none (uncalibrated B4),0,0.1209086516424321,0.07223139222534591,91.0,28.0,0.0,
+hand,8,0.11404684890336857,0.061942402192979945,90.0,23.0,1.0,
+discovered,0,,,,,,no groups
+shap,5,0.11370219928571798,0.048637066586155506,90.0,22.0,1.0,

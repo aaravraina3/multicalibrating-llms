@@ -68,35 +68,39 @@ class TrajectoryNet(nn.Module):
         return self.head(torch.cat(parts, -1)).squeeze(-1)
 
 
-def _tensors(seq, pad, scalar, extra, idx):
+def _tensors(seq, pad, scalar, extra, idx, device="cpu"):
     t = [torch.from_numpy(seq[idx]), torch.from_numpy(pad[idx]), torch.from_numpy(scalar[idx])]
-    return t + [torch.from_numpy(extra[idx]) if extra is not None else None]
+    t = t + [torch.from_numpy(extra[idx]) if extra is not None else None]
+    return [x.to(device) if x is not None else None for x in t]
 
 
 def predict(model, seq, pad, scalar, extra=None, batch=512):
+    device = next(model.parameters()).device
     model.eval()
     out = []
     with torch.no_grad():
         for i in range(0, len(seq), batch):
             idx = np.arange(i, min(i + batch, len(seq)))
-            out.append(torch.sigmoid(model(*_tensors(seq, pad, scalar, extra, idx))).numpy())
+            out.append(torch.sigmoid(model(*_tensors(seq, pad, scalar, extra, idx, device))).cpu().numpy())
     return np.concatenate(out)
 
 
-def train_one(seq, pad, scalar, extra, y, tr, va, seed, epochs=50, patience=5, batch=128, lr=1e-3, wd=1e-2):
-    """AdamW on binary cross entropy; early stop on the inner validation rows; keep the best epoch's weights."""
+def train_one(seq, pad, scalar, extra, y, tr, va, seed, epochs=50, patience=5, batch=128, lr=1e-3, wd=1e-2,
+              device="cpu"):
+    """AdamW on binary cross entropy; early stop on the inner validation rows; keep the best epoch's weights.
+    Returns the model on the CPU."""
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
-    model = TrajectoryNet(n_extra=0 if extra is None else extra.shape[1])
+    model = TrajectoryNet(n_extra=0 if extra is None else extra.shape[1]).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=wd)
     loss_fn = nn.BCEWithLogitsLoss()
-    yt = torch.from_numpy(y.astype(np.float32))
+    yt = torch.from_numpy(y.astype(np.float32)).to(device)
     best, best_state, bad, history = np.inf, None, 0, []
     for epoch in range(epochs):
         model.train()
         for b in np.array_split(rng.permutation(tr), max(1, len(tr) // batch)):
             opt.zero_grad()
-            loss = loss_fn(model(*_tensors(seq, pad, scalar, extra, b)), yt[b])
+            loss = loss_fn(model(*_tensors(seq, pad, scalar, extra, b, device)), yt[torch.from_numpy(b).to(device)])
             loss.backward()
             opt.step()
         p = np.clip(predict(model, seq[va], pad[va], scalar[va], None if extra is None else extra[va]), 1e-6, 1 - 1e-6)
@@ -104,10 +108,11 @@ def train_one(seq, pad, scalar, extra, y, tr, va, seed, epochs=50, patience=5, b
         history.append(val)
         if val < best - 1e-5:
             best, bad = val, 0
-            best_state = {k: v.clone() for k, v in model.state_dict().items()}
+            best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
         else:
             bad += 1
             if bad >= patience:
                 break
+    model = model.cpu()
     model.load_state_dict(best_state)
     return model, history

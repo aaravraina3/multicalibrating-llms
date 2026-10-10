@@ -679,3 +679,71 @@ Explain:
 * Boosting adds small trees one at a time, each fit to the remaining errors (gradient of log loss) of the trees before it.
 * Grouped folds keep all 10 samples of a problem in one fold. With row folds, a fold's validation rows would have near-duplicate siblings in training and the search would reward memorizing problems.
 * TPE models which hyperparameter values produced good versus bad trials, and samples new trials where good ones are more likely, instead of searching a grid.
+
+### Phase V3: TreeSHAP and ablations on B4
+
+`src/calib/shap_tools.py`, `experiments/v2_shap.py`, outputs `runs/v2/v3_shap/<model>/`. All SHAP explains B4's raw prediction before calibration (safeguard 8), and shows what the model relies on, not what causes code to fail. Main effects: interventional TreeSHAP, 200 base_train background rows (seed 0), probability scale, on val_tune (safeguards 2 to 4). Interactions: path dependent, log odds scale (shap's only option). B4 retrained under seeds 0, 1, 2.
+
+Three bugs fixed during the phase, before the numbers below: a binary feature's "at or below the median" side was every row (`syntax_valid <= 1`); the worst slice list repeated the same rows under different group names; and 5 row slices with noisy gaps ranked as "worst". See DECISIONS.md 46 to 48 and 57.
+
+Block importance (mean |block SHAP|, probability points, 95% task clustered interval, 1000 draws):
+
+| block | Qwen3 | GPT OSS |
+|---|---|---|
+| self consistency | 0.149 [0.136, 0.163] | 0.163 [0.156, 0.170] |
+| size | 0.087 [0.079, 0.094] | 0.165 [0.159, 0.171] |
+| AST structure | 0.082 [0.075, 0.088] | 0.114 [0.109, 0.119] |
+| logprob statistics | 0.051 [0.047, 0.055] | 0.019 [0.018, 0.020] |
+
+* Seed stability: Spearman of feature importance between seeds 0.986 to 0.989 (Qwen3), 0.901 to 0.946 (GPT OSS).
+* Noise check: the random column ranks 22 of 38 for both. Below it: Qwen3 `imports`, `code_std`, `empty_code`, `code_low`, `sc_missing`, `code_lp_missing`; GPT OSS `all_mean`, `all_low`, `sc_identical`, `code_low`, `truncated`, `code_lp_missing`. `truncated` ranking below noise for GPT OSS is the correlated credit problem (safeguard 1): output length, empty code, and others-empty carry the same information, so the model splits on those.
+* Stable interactions (top 5 in all 3 seeds, val_tune): Qwen3 code lines x agreement, code lines x syntax valid, prompt length x output tokens; GPT OSS code chars x agreement, code lines x agreement, nesting x agreement. Agreement with the other samples (`sc_mean_sim`) is in almost every stable pair.
+
+Block ablation (B4 config fixed; change in val_tune log loss when the block is dropped, positive = the block helped):
+
+| block dropped | Qwen3 | GPT OSS | retuned (25 trials): Qwen3 / GPT OSS |
+|---|---|---|---|
+| logprob statistics | +0.010 | +0.004 | +0.010 / +0.005 |
+| size | -0.024 | -0.001 | -0.015 / -0.001 |
+| AST structure | +0.013 | +0.001 | +0.022 / -0.000 |
+| self consistency | -0.005 | +0.003 | +0.004 / +0.006 |
+
+SHAP and the ablation disagree in a useful way. SHAP ranks self consistency first, but dropping it barely matters, because size and AST features carry the same information (correlated credit). Dropping the size block makes Qwen3 B4 better on val_tune (log loss 0.330 vs 0.354): B4 overuses length features that don't hold up on new problems. Token log probability statistics get the least SHAP credit, but they're the hardest to replace, since nothing else carries them.
+
+SHAP groups (frozen; chosen from out of fold SHAP on base_train, safeguard 7):
+* Qwen3: `sc_mean_sim > 0.546`, `syntax_valid <= 0.5`, `log_output_tokens > 6.72`, `log_code_lines > 2.94`, and code lines with agreement.
+* GPT OSS: `log_code_lines <= 2.77`, `sc_mean_sim > 0.373`, `syntax_valid <= 0.5`, `sc_others_empty <= 0.222`, code chars with agreement, code lines with agreement.
+
+Three group sets, IGLB on B4 (fit calib, stop val_tune), measured on the union of all three sets:
+
+| model | group set | groups | val_tune Brier | max gASCE union | slices > 2 SE (of checked) | IGLB patches |
+|---|---|---|---|---|---|---|
+| Qwen3 | uncalibrated | | 0.1209 | 0.072 | 28 of 91 | |
+| Qwen3 | hand | 8 | 0.1140 | 0.062 | 23 of 90 | 1 |
+| Qwen3 | discovered | 0 | | | | |
+| Qwen3 | SHAP | 5 | 0.1137 | 0.049 | 22 of 90 | 1 |
+| GPT OSS | uncalibrated | | 0.0234 | 0.012 | 38 of 69 | |
+| GPT OSS | hand | 7 | 0.0234 | 0.012 | 38 of 69 | 0 |
+| GPT OSS | discovered | 2 | 0.0229 | 0.007 | 29 of 59 | 1 |
+| GPT OSS | SHAP | 6 | 0.0234 | 0.012 | 38 of 69 | 0 |
+
+Answer to "are the features the model relies on most also where its calibration breaks?": partly. For Qwen3 the SHAP groups give the lowest worst-group error (0.049 vs 0.062 for hand groups), at essentially the same Brier. For GPT OSS only boosted multicalibration's discovered groups led IGLB to patch anything. Every set changes Brier by under 0.001.
+
+Worst slices of uncalibrated B4 on val_tune, one sentence each:
+* Qwen3, long code at p 0.55 (passes 0.83, 109 rows): B4 is underconfident on long, syntactically valid code whose samples agree (agreement 0.68 vs 0.46 overall); self consistency pushes it up 9 points, not enough.
+* Qwen3, nested code at p 0.56 (passes 0.92, 47 rows): same pattern on deeply nested code; agreement and valid syntax push it up but it still lands 36 points low.
+* Qwen3, long prompts at p 0.55 (passes 0.85, 54 rows): long prompts pull the prediction down (size -6 points) even when the samples agree strongly (0.76).
+* Qwen3, long code with high agreement at p 0.64 (passes 0.92, 61 rows): agreement adds 12 points; B4 still underweights it.
+* Qwen3, nested code at p 0.85 (passes 0.53, 40 rows): the one overconfident slice. Samples agree almost perfectly (0.86) and agreement adds 22 points, but they agree on the same wrong solution.
+* GPT OSS, all five worst slices are underconfident at the top (for example p 0.86, passes 0.98, 100 rows): long valid code gets credit from size and structure, but B4 stays a few points short where nearly everything passes.
+
+Per model: Qwen3 leans on agreement between samples; GPT OSS leans equally on size (did it finish and write code) and agreement. Token log probabilities matter least for both and barely at all for GPT OSS (0.019), which matches v1: GPT OSS token scores have AUROC near 0.5 once you know code exists.
+
+Explain:
+* A Shapley value is a feature's average contribution to the prediction over every order of adding features, measured against a background. Contributions add up exactly to the prediction minus the average prediction.
+* TreeSHAP is exact for trees because a tree's prediction is a sum over leaves, so the average over feature orders can be computed by walking the tree instead of enumerating orders.
+* Interventional mode breaks the link between correlated features when "removing" one, so it explains what the model computes. The default mode follows the training data's correlations and can credit a feature the model barely uses.
+* Log odds vs probability: contributions add on the scale used. On log odds they're not percentage points; the probability scale ones are, so they can be said out loud.
+* Correlated features split credit: if two features carry the same signal, SHAP divides it between them. The ablation measures what's unique to a block, so the two together tell you importance and redundancy.
+* SHAP groups are chosen on out of fold base_train rows and evaluated on val_tune; choosing and evaluating on the same rows is the winner's curse again.
+* SHAP is not causal: it says what B4 leans on. Long code passing more often doesn't mean making code longer helps.

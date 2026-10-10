@@ -1,0 +1,62 @@
+[
+ {
+  "name": "sc_mean_sim > 0.546",
+  "conditions": [
+   [
+    "sc_mean_sim",
+    ">",
+    0.5458136957132884
+   ]
+  ],
+  "base_train_problems": 194
+ },
+ {
+  "name": "syntax_valid <= 0.5",
+  "conditions": [
+   [
+    "syntax_valid",
+    "<=",
+    0.5
+   ]
+  ],
+  "base_train_problems": 155
+ },
+ {
+  "name": "log_output_tokens > 6.72",
+  "conditions": [
+   [
+    "log_output_tokens",
+    ">",
+    6.71901315438526
+   ]
+  ],
+  "base_train_problems": 209
+ },
+ {
+  "name": "log_code_lines > 2.94",
+  "conditions": [
+   [
+    "log_code_lines",
+    ">",
+    2.9444389791664403
+   ]
+  ],
+  "base_train_problems": 215
+ },
+ {
+  "name": "log_code_lines > 2.94 & sc_mean_sim > 0.546",
+  "conditions": [
+   [
+    "log_code_lines",
+    ">",
+    2.9444389791664403
+   ],
+   [
+    "sc_mean_sim",
+    ">",
+    0.5458136957132884
+   ]
+  ],
+  "base_train_problems": 132
+ }
+]

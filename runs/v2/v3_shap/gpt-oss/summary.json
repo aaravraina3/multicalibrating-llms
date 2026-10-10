@@ -1,0 +1,527 @@
+{
+ "seed_spearman": {
+  "0-1": 0.9462854218256621,
+  "0-2": 0.9009516876761806,
+  "1-2": 0.9330021219889727
+ },
+ "top10_in_all_seeds": [
+  "log_code_lines",
+  "sc_mean_sim",
+  "syntax_valid",
+  "sc_others_empty",
+  "log_output_tokens",
+  "nesting",
+  "log_prompt_chars",
+  "structure_missing",
+  "log_code_chars",
+  "all_p10"
+ ],
+ "interactions_top5_logodds": {
+  "seed0": [
+   [
+    "log_code_chars",
+    "sc_mean_sim",
+    0.05688018724322319
+   ],
+   [
+    "nesting",
+    "sc_mean_sim",
+    0.029094412922859192
+   ],
+   [
+    "syntax_valid",
+    "sc_mean_sim",
+    0.0286638755351305
+   ],
+   [
+    "log_code_lines",
+    "sc_mean_sim",
+    0.026580801233649254
+   ],
+   [
+    "log_output_tokens",
+    "sc_mean_sim",
+    0.02432691492140293
+   ]
+  ],
+  "seed1": [
+   [
+    "log_code_chars",
+    "sc_mean_sim",
+    0.06038127839565277
+   ],
+   [
+    "log_code_lines",
+    "sc_mean_sim",
+    0.03439050912857056
+   ],
+   [
+    "log_prompt_chars",
+    "sc_others_empty",
+    0.028247036039829254
+   ],
+   [
+    "nesting",
+    "sc_mean_sim",
+    0.026834268122911453
+   ],
+   [
+    "log_prompt_chars",
+    "syntax_valid",
+    0.02251354046165943
+   ]
+  ],
+  "seed2": [
+   [
+    "log_code_chars",
+    "sc_mean_sim",
+    0.04302024096250534
+   ],
+   [
+    "log_code_lines",
+    "sc_mean_sim",
+    0.03312958776950836
+   ],
+   [
+    "nesting",
+    "sc_mean_sim",
+    0.03156504034996033
+   ],
+   [
+    "log_output_tokens",
+    "sc_mean_sim",
+    0.028523916378617287
+   ],
+   [
+    "syntax_valid",
+    "sc_mean_sim",
+    0.025019561871886253
+   ]
+  ]
+ },
+ "stable_interaction_pairs_val_tune": [
+  [
+   "log_code_chars",
+   "sc_mean_sim"
+  ],
+  [
+   "log_code_lines",
+   "sc_mean_sim"
+  ],
+  [
+   "nesting",
+   "sc_mean_sim"
+  ]
+ ],
+ "noise_rank": 22,
+ "features_below_noise": [
+  "all_mean",
+  "all_low",
+  "sc_identical",
+  "code_low",
+  "truncated",
+  "code_lp_missing"
+ ],
+ "stable_interaction_pairs_oof_base_train": [
+  [
+   "log_code_chars",
+   "sc_mean_sim"
+  ],
+  [
+   "log_code_lines",
+   "sc_mean_sim"
+  ],
+  [
+   "log_output_tokens",
+   "sc_mean_sim"
+  ],
+  [
+   "nesting",
+   "sc_mean_sim"
+  ],
+  [
+   "sc_others_empty",
+   "sc_mean_sim"
+  ]
+ ],
+ "shap_groups": [
+  {
+   "name": "log_code_lines <= 2.77",
+   "conditions": [
+    [
+     "log_code_lines",
+     "<=",
+     2.772588722239781
+    ]
+   ],
+   "base_train_problems": 246
+  },
+  {
+   "name": "sc_mean_sim > 0.373",
+   "conditions": [
+    [
+     "sc_mean_sim",
+     ">",
+     0.3729392698462427
+    ]
+   ],
+   "base_train_problems": 203
+  },
+  {
+   "name": "syntax_valid <= 0.5",
+   "conditions": [
+    [
+     "syntax_valid",
+     "<=",
+     0.5
+    ]
+   ],
+   "base_train_problems": 197
+  },
+  {
+   "name": "sc_others_empty <= 0.222",
+   "conditions": [
+    [
+     "sc_others_empty",
+     "<=",
+     0.2222222222222222
+    ]
+   ],
+   "base_train_problems": 175
+  },
+  {
+   "name": "log_code_chars > 5.85 & sc_mean_sim > 0.373",
+   "conditions": [
+    [
+     "log_code_chars",
+     ">",
+     5.849324779946859
+    ],
+    [
+     "sc_mean_sim",
+     ">",
+     0.3729392698462427
+    ]
+   ],
+   "base_train_problems": 191
+  },
+  {
+   "name": "log_code_lines <= 2.77 & sc_mean_sim > 0.373",
+   "conditions": [
+    [
+     "log_code_lines",
+     "<=",
+     2.772588722239781
+    ],
+    [
+     "sc_mean_sim",
+     ">",
+     0.3729392698462427
+    ]
+   ],
+   "base_train_problems": 65
+  }
+ ],
+ "worst_slices": [
+  {
+   "group": "disc: avg_prob > 0.689",
+   "bin": 8,
+   "rows": 100,
+   "problems": 37,
+   "mean_p": 0.8594369292259216,
+   "pass_rate": 0.98,
+   "gap": 0.12056310951709748,
+   "se": 0.019245595486633054,
+   "weight": 0.001101171467911488,
+   "block_profile_vs_overall": {
+    "logprob statistics": 0.019070045281684656,
+    "size": 0.1394596783524057,
+    "AST structure": 0.12050318156962196,
+    "self consistency": 0.1174219993029498
+   },
+   "top_features_vs_overall": [
+    [
+     "log_code_lines",
+     0.12701885088590076,
+     3.589456572176707,
+     1.6818115288874003
+    ],
+    [
+     "syntax_valid",
+     0.08557758099342502,
+     1.0,
+     0.5166666666666667
+    ],
+    [
+     "sc_mean_sim",
+     0.0787931868848619,
+     0.442030149793557,
+     0.3040776624513147
+    ]
+   ]
+  },
+  {
+   "group": "prompt_len_high",
+   "bin": 7,
+   "rows": 31,
+   "problems": 15,
+   "mean_p": 0.7531331181526184,
+   "pass_rate": 0.9354838709677419,
+   "gap": 0.18235076819696733,
+   "se": 0.043067721638887085,
+   "weight": 0.0007809135473657178,
+   "block_profile_vs_overall": {
+    "logprob statistics": 0.026283644607755917,
+    "size": 0.1111023891383604,
+    "AST structure": 0.11070812052431384,
+    "self consistency": 0.042056927342995536
+   },
+   "top_features_vs_overall": [
+    [
+     "log_code_lines",
+     0.12120768967396213,
+     3.5718867913549897,
+     1.6818115288874003
+    ],
+    [
+     "syntax_valid",
+     0.0805507832378996,
+     1.0,
+     0.5166666666666667
+    ],
+    [
+     "sc_mean_sim",
+     0.04400101556880347,
+     0.3740534300899499,
+     0.3040776624513147
+    ]
+   ]
+  },
+  {
+   "group": "all",
+   "bin": 6,
+   "rows": 33,
+   "problems": 17,
+   "mean_p": 0.6524612307548523,
+   "pass_rate": 0.8181818181818182,
+   "gap": 0.16572055130293875,
+   "se": 0.07428287756444843,
+   "weight": 0.0006865825281037489,
+   "block_profile_vs_overall": {
+    "logprob statistics": -0.0033365700821347544,
+    "size": 0.09624279707440399,
+    "AST structure": 0.11095284799288069,
+    "self consistency": -0.014379844309813379
+   },
+   "top_features_vs_overall": [
+    [
+     "log_code_lines",
+     0.10184231567099747,
+     3.7270600213294793,
+     1.6818115288874003
+    ],
+    [
+     "syntax_valid",
+     0.07700951521351118,
+     1.0,
+     0.5166666666666667
+    ],
+    [
+     "nesting",
+     0.021036726803588555,
+     4.696969696969697,
+     1.959848484848485
+    ]
+   ]
+  },
+  {
+   "group": "nested",
+   "bin": 8,
+   "rows": 52,
+   "problems": 17,
+   "mean_p": 0.8607138395309448,
+   "pass_rate": 0.9807692307692307,
+   "gap": 0.12005541301690616,
+   "se": 0.02011013911242803,
+   "weight": 0.0005677967531229665,
+   "block_profile_vs_overall": {
+    "logprob statistics": 0.017610906325547487,
+    "size": 0.13631852636116876,
+    "AST structure": 0.11718645050984797,
+    "self consistency": 0.1266159607915313
+   },
+   "top_features_vs_overall": [
+    [
+     "log_code_lines",
+     0.12537649708631265,
+     3.5705359061940096,
+     1.6818115288874003
+    ],
+    [
+     "syntax_valid",
+     0.08577180125557682,
+     1.0,
+     0.5166666666666667
+    ],
+    [
+     "sc_mean_sim",
+     0.080143831382629,
+     0.4489311420718351,
+     0.3040776624513147
+    ]
+   ]
+  },
+  {
+   "group": "all",
+   "bin": 9,
+   "rows": 453,
+   "problems": 59,
+   "mean_p": 0.9649670124053955,
+   "pass_rate": 0.9955849889624724,
+   "gap": 0.030617925504974972,
+   "se": 0.003442798321830178,
+   "weight": 0.000321718322037404,
+   "block_profile_vs_overall": {
+    "logprob statistics": 0.011512680873320004,
+    "size": 0.18170383988268093,
+    "AST structure": 0.11001918633599055,
+    "self consistency": 0.1987493715391168
+   },
+   "top_features_vs_overall": [
+    [
+     "sc_mean_sim",
+     0.15051668719796998,
+     0.7038618741641064,
+     0.3040776624513147
+    ],
+    [
+     "log_code_lines",
+     0.1300950555049143,
+     3.0638339233754093,
+     1.6818115288874003
+    ],
+    [
+     "syntax_valid",
+     0.08494639593281124,
+     1.0,
+     0.5166666666666667
+    ]
+   ]
+  }
+ ],
+ "block_importance": [
+  {
+   "block": "size",
+   "mean_abs_shap_prob": 0.16515430106442247,
+   "lo": 0.15866052081336054,
+   "hi": 0.17132193628270873,
+   "sum_of_feature_importance": 0.17739515864783578
+  },
+  {
+   "block": "self consistency",
+   "mean_abs_shap_prob": 0.1630624941229109,
+   "lo": 0.1563852987625217,
+   "hi": 0.16946199766545675,
+   "sum_of_feature_importance": 0.16575620090960208
+  },
+  {
+   "block": "AST structure",
+   "mean_abs_shap_prob": 0.11396790671559281,
+   "lo": 0.1094233626468319,
+   "hi": 0.1184770871561862,
+   "sum_of_feature_importance": 0.12151046484592935
+  },
+  {
+   "block": "logprob statistics",
+   "mean_abs_shap_prob": 0.01895559146515383,
+   "lo": 0.017813779125424364,
+   "hi": 0.020235418905397456,
+   "sum_of_feature_importance": 0.024291907118992664
+  }
+ ],
+ "ablation": [
+  {
+   "dropped": "(none)",
+   "val_tune_log_loss": 0.0886274318487708,
+   "val_tune_auroc": 0.9953986919696493,
+   "retuned_val_tune_log_loss": NaN,
+   "retuned_val_tune_auroc": NaN,
+   "delta_log_loss": 0.0,
+   "delta_auroc": 0.0
+  },
+  {
+   "dropped": "logprob statistics",
+   "val_tune_log_loss": 0.09240868613917634,
+   "val_tune_auroc": 0.9939778686961735,
+   "retuned_val_tune_log_loss": 0.0938354708217296,
+   "retuned_val_tune_auroc": 0.9939985435699994,
+   "delta_log_loss": 0.0037812542904055446,
+   "delta_auroc": -0.001420823273475702
+  },
+  {
+   "dropped": "size",
+   "val_tune_log_loss": 0.08735428978195131,
+   "val_tune_auroc": 0.9958925917332666,
+   "retuned_val_tune_log_loss": 0.0878018435094308,
+   "retuned_val_tune_auroc": 0.9954836886731555,
+   "delta_log_loss": -0.0012731420668194854,
+   "delta_auroc": 0.0004938997636173559
+  },
+  {
+   "dropped": "AST structure",
+   "val_tune_log_loss": 0.08987856200158907,
+   "val_tune_auroc": 0.995392948949142,
+   "retuned_val_tune_log_loss": 0.08822578911962355,
+   "retuned_val_tune_auroc": 0.9956226697694293,
+   "delta_log_loss": 0.001251130152818275,
+   "delta_auroc": -5.743020507265051e-06
+  },
+  {
+   "dropped": "self consistency",
+   "val_tune_log_loss": 0.09193341970464892,
+   "val_tune_auroc": 0.9950012749505526,
+   "retuned_val_tune_log_loss": 0.0948357975614878,
+   "retuned_val_tune_auroc": 0.9943350845717199,
+   "delta_log_loss": 0.0033059878558781286,
+   "delta_auroc": -0.0003974170190966797
+  }
+ ],
+ "group_set_comparison": [
+  {
+   "group_set": "none (uncalibrated B4)",
+   "groups": 0,
+   "val_tune_brier": 0.02338675886202185,
+   "max_gasce_union": 0.011838076998351425,
+   "slices_checked": 69,
+   "slices_over_2se": 38,
+   "iglb_patches": 0
+  },
+  {
+   "group_set": "hand",
+   "groups": 7,
+   "val_tune_brier": 0.02338675886202185,
+   "max_gasce_union": 0.011838076998351425,
+   "slices_checked": 69,
+   "slices_over_2se": 38,
+   "iglb_patches": 0
+  },
+  {
+   "group_set": "discovered",
+   "groups": 2,
+   "val_tune_brier": 0.02288844415091589,
+   "max_gasce_union": 0.006988055086452783,
+   "slices_checked": 59,
+   "slices_over_2se": 29,
+   "iglb_patches": 1
+  },
+  {
+   "group_set": "shap",
+   "groups": 6,
+   "val_tune_brier": 0.02338675886202185,
+   "max_gasce_union": 0.011838076998351425,
+   "slices_checked": 69,
+   "slices_over_2se": 38,
+   "iglb_patches": 0
+  }
+ ]
+}

@@ -1,0 +1,509 @@
+{
+ "seed_spearman": {
+  "0-1": 0.9865278628291487,
+  "0-2": 0.989293778473602,
+  "1-2": 0.9862347377238382
+ },
+ "top10_in_all_seeds": [
+  "sc_mean_sim",
+  "syntax_valid",
+  "log_output_tokens",
+  "log_code_lines",
+  "log_prompt_chars",
+  "sc_identical",
+  "sc_others_empty",
+  "loops"
+ ],
+ "interactions_top5_logodds": {
+  "seed0": [
+   [
+    "log_code_lines",
+    "sc_mean_sim",
+    0.059952110052108765
+   ],
+   [
+    "log_code_lines",
+    "syntax_valid",
+    0.0576840415596962
+   ],
+   [
+    "log_prompt_chars",
+    "log_output_tokens",
+    0.021175388246774673
+   ],
+   [
+    "syntax_valid",
+    "sc_identical",
+    0.02045520953834057
+   ],
+   [
+    "sc_others_empty",
+    "sc_mean_sim",
+    0.01954304613173008
+   ]
+  ],
+  "seed1": [
+   [
+    "log_code_lines",
+    "sc_mean_sim",
+    0.07073305547237396
+   ],
+   [
+    "log_code_lines",
+    "syntax_valid",
+    0.04915684834122658
+   ],
+   [
+    "log_prompt_chars",
+    "log_output_tokens",
+    0.017775660380721092
+   ],
+   [
+    "all_std",
+    "sc_mean_sim",
+    0.016302471980452538
+   ],
+   [
+    "log_code_lines",
+    "structure_missing",
+    0.016199816018342972
+   ]
+  ],
+  "seed2": [
+   [
+    "log_code_lines",
+    "sc_mean_sim",
+    0.07386349141597748
+   ],
+   [
+    "log_code_lines",
+    "syntax_valid",
+    0.04531631991267204
+   ],
+   [
+    "log_prompt_chars",
+    "log_output_tokens",
+    0.020176483318209648
+   ],
+   [
+    "log_code_chars",
+    "sc_mean_sim",
+    0.018351072445511818
+   ],
+   [
+    "log_prompt_chars",
+    "sc_others_empty",
+    0.016104068607091904
+   ]
+  ]
+ },
+ "stable_interaction_pairs_val_tune": [
+  [
+   "log_code_lines",
+   "sc_mean_sim"
+  ],
+  [
+   "log_code_lines",
+   "syntax_valid"
+  ],
+  [
+   "log_prompt_chars",
+   "log_output_tokens"
+  ]
+ ],
+ "noise_rank": 22,
+ "features_below_noise": [
+  "imports",
+  "code_std",
+  "empty_code",
+  "code_low",
+  "sc_missing",
+  "code_lp_missing"
+ ],
+ "stable_interaction_pairs_oof_base_train": [
+  [
+   "log_code_lines",
+   "sc_mean_sim"
+  ],
+  [
+   "log_code_lines",
+   "syntax_valid"
+  ],
+  [
+   "log_code_chars",
+   "sc_mean_sim"
+  ],
+  [
+   "log_prompt_chars",
+   "log_output_tokens"
+  ]
+ ],
+ "shap_groups": [
+  {
+   "name": "sc_mean_sim > 0.546",
+   "conditions": [
+    [
+     "sc_mean_sim",
+     ">",
+     0.5458136957132884
+    ]
+   ],
+   "base_train_problems": 194
+  },
+  {
+   "name": "syntax_valid <= 0.5",
+   "conditions": [
+    [
+     "syntax_valid",
+     "<=",
+     0.5
+    ]
+   ],
+   "base_train_problems": 155
+  },
+  {
+   "name": "log_output_tokens > 6.72",
+   "conditions": [
+    [
+     "log_output_tokens",
+     ">",
+     6.71901315438526
+    ]
+   ],
+   "base_train_problems": 209
+  },
+  {
+   "name": "log_code_lines > 2.94",
+   "conditions": [
+    [
+     "log_code_lines",
+     ">",
+     2.9444389791664403
+    ]
+   ],
+   "base_train_problems": 215
+  },
+  {
+   "name": "log_code_lines > 2.94 & sc_mean_sim > 0.546",
+   "conditions": [
+    [
+     "log_code_lines",
+     ">",
+     2.9444389791664403
+    ],
+    [
+     "sc_mean_sim",
+     ">",
+     0.5458136957132884
+    ]
+   ],
+   "base_train_problems": 132
+  }
+ ],
+ "worst_slices": [
+  {
+   "group": "loc_high",
+   "bin": 5,
+   "rows": 109,
+   "problems": 30,
+   "mean_p": 0.5525348782539368,
+   "pass_rate": 0.8256880733944955,
+   "gap": 0.27315318037610536,
+   "se": 0.052849551734610686,
+   "weight": 0.006161196920079049,
+   "block_profile_vs_overall": {
+    "logprob statistics": 0.024808876979842506,
+    "size": -0.027866904556327655,
+    "AST structure": 0.061226900129832056,
+    "self consistency": 0.08626284793939049
+   },
+   "top_features_vs_overall": [
+    [
+     "sc_mean_sim",
+     0.06811069201440174,
+     0.6770276929886576,
+     0.45696258155350006
+    ],
+    [
+     "log_code_lines",
+     -0.05818854189473263,
+     3.5575856870276663,
+     2.293263781521627
+    ],
+    [
+     "syntax_valid",
+     0.04919422568287391,
+     1.0,
+     0.6727272727272727
+    ]
+   ]
+  },
+  {
+   "group": "nested",
+   "bin": 5,
+   "rows": 47,
+   "problems": 13,
+   "mean_p": 0.5582060813903809,
+   "pass_rate": 0.9148936170212766,
+   "gap": 0.356687548312735,
+   "se": 0.04003175525843959,
+   "weight": 0.004530016920229875,
+   "block_profile_vs_overall": {
+    "logprob statistics": 0.025986453775234633,
+    "size": -0.0171597219177028,
+    "AST structure": 0.061607747005318764,
+    "self consistency": 0.07966841656583278
+   },
+   "top_features_vs_overall": [
+    [
+     "sc_mean_sim",
+     0.06608946216003467,
+     0.6345260202254924,
+     0.45696258155350006
+    ],
+    [
+     "log_code_lines",
+     -0.05721529530418362,
+     3.5583742704719663,
+     2.293263781521627
+    ],
+    [
+     "syntax_valid",
+     0.04977608247106727,
+     1.0,
+     0.6727272727272727
+    ]
+   ]
+  },
+  {
+   "group": "prompt_len_high",
+   "bin": 5,
+   "rows": 54,
+   "problems": 18,
+   "mean_p": 0.552068829536438,
+   "pass_rate": 0.8518518518518519,
+   "gap": 0.29978297374866625,
+   "se": 0.0667114836414732,
+   "weight": 0.003676493100665189,
+   "block_profile_vs_overall": {
+    "logprob statistics": 0.036126748555901936,
+    "size": -0.060359472556727196,
+    "AST structure": 0.06267564438875001,
+    "self consistency": 0.10552278390567224
+   },
+   "top_features_vs_overall": [
+    [
+     "sc_mean_sim",
+     0.0783703404454624,
+     0.7575555502160084,
+     0.45696258155350006
+    ],
+    [
+     "syntax_valid",
+     0.04912889238364219,
+     1.0,
+     0.6727272727272727
+    ],
+    [
+     "log_prompt_chars",
+     -0.048621598801482285,
+     7.524710826136374,
+     7.210177103804276
+    ]
+   ]
+  },
+  {
+   "group": "shap: log_code_lines > 2.94 & sc_mean_sim > 0.546",
+   "bin": 6,
+   "rows": 61,
+   "problems": 22,
+   "mean_p": 0.6367722153663635,
+   "pass_rate": 0.9180327868852459,
+   "gap": 0.2812606702085401,
+   "se": 0.05558282414043173,
+   "weight": 0.0036557283643754448,
+   "block_profile_vs_overall": {
+    "logprob statistics": 0.038926865672450184,
+    "size": -0.0175444361777398,
+    "AST structure": 0.08226914916358499,
+    "self consistency": 0.12501731334338745
+   },
+   "top_features_vs_overall": [
+    [
+     "sc_mean_sim",
+     0.08947573503705614,
+     0.7718367190937458,
+     0.45696258155350006
+    ],
+    [
+     "syntax_valid",
+     0.05208883669583727,
+     1.0,
+     0.6727272727272727
+    ],
+    [
+     "log_output_tokens",
+     0.0470779242369527,
+     6.351089157969535,
+     6.702269847408955
+    ]
+   ]
+  },
+  {
+   "group": "nested",
+   "bin": 8,
+   "rows": 40,
+   "problems": 8,
+   "mean_p": 0.8508631587028503,
+   "pass_rate": 0.525,
+   "gap": -0.3258631438016891,
+   "se": 0.21681727350225405,
+   "weight": 0.0032177814693430404,
+   "block_profile_vs_overall": {
+    "logprob statistics": 0.08002601048001791,
+    "size": 0.07036130629116784,
+    "AST structure": 0.07534670335966237,
+    "self consistency": 0.21702592463508885
+   },
+   "top_features_vs_overall": [
+    [
+     "sc_mean_sim",
+     0.17110066523771922,
+     0.8644789263325325,
+     0.45696258155350006
+    ],
+    [
+     "syntax_valid",
+     0.05610154887806116,
+     1.0,
+     0.6727272727272727
+    ],
+    [
+     "log_output_tokens",
+     0.05391139275231884,
+     5.955908381813414,
+     6.702269847408955
+    ]
+   ]
+  }
+ ],
+ "block_importance": [
+  {
+   "block": "self consistency",
+   "mean_abs_shap_prob": 0.14863820046121864,
+   "lo": 0.13573363560791363,
+   "hi": 0.16268353327140989,
+   "sum_of_feature_importance": 0.15976526030820962
+  },
+  {
+   "block": "size",
+   "mean_abs_shap_prob": 0.08655627390154895,
+   "lo": 0.07939595949768055,
+   "hi": 0.09350570910179198,
+   "sum_of_feature_importance": 0.14377012447696566
+  },
+  {
+   "block": "AST structure",
+   "mean_abs_shap_prob": 0.0815036393828324,
+   "lo": 0.07512944669614573,
+   "hi": 0.08827089044404052,
+   "sum_of_feature_importance": 0.10357859660218033
+  },
+  {
+   "block": "logprob statistics",
+   "mean_abs_shap_prob": 0.051001564709247695,
+   "lo": 0.04688425739148026,
+   "hi": 0.05527236546487661,
+   "sum_of_feature_importance": 0.05854421430130241
+  }
+ ],
+ "ablation": [
+  {
+   "dropped": "(none)",
+   "val_tune_log_loss": 0.35442609482614157,
+   "val_tune_auroc": 0.918952348236661,
+   "retuned_val_tune_log_loss": NaN,
+   "retuned_val_tune_auroc": NaN,
+   "delta_log_loss": 0.0,
+   "delta_auroc": 0.0
+  },
+  {
+   "dropped": "logprob statistics",
+   "val_tune_log_loss": 0.3643289519477438,
+   "val_tune_auroc": 0.9129212382219292,
+   "retuned_val_tune_log_loss": 0.3646547745250053,
+   "retuned_val_tune_auroc": 0.9140048092108146,
+   "delta_log_loss": 0.009902857121602215,
+   "delta_auroc": -0.006031110014731889
+  },
+  {
+   "dropped": "size",
+   "val_tune_log_loss": 0.33034726484100135,
+   "val_tune_auroc": 0.9319113961696918,
+   "retuned_val_tune_log_loss": 0.3392316424153802,
+   "retuned_val_tune_auroc": 0.9287286945736148,
+   "delta_log_loss": -0.024078829985140215,
+   "delta_auroc": 0.01295904793303071
+  },
+  {
+   "dropped": "AST structure",
+   "val_tune_log_loss": 0.367230613311668,
+   "val_tune_auroc": 0.9122376663108558,
+   "retuned_val_tune_log_loss": 0.37628795418845995,
+   "retuned_val_tune_auroc": 0.9110503491634601,
+   "delta_log_loss": 0.01280451848552644,
+   "delta_auroc": -0.006714681925805266
+  },
+  {
+   "dropped": "self consistency",
+   "val_tune_log_loss": 0.34994110281131174,
+   "val_tune_auroc": 0.9204347655682636,
+   "retuned_val_tune_log_loss": 0.3583055790973242,
+   "retuned_val_tune_auroc": 0.9168140246362545,
+   "delta_log_loss": -0.004484992014829825,
+   "delta_auroc": 0.0014824173316025924
+  }
+ ],
+ "group_set_comparison": [
+  {
+   "group_set": "none (uncalibrated B4)",
+   "groups": 0,
+   "val_tune_brier": 0.1209086516424321,
+   "max_gasce_union": 0.07223139222534591,
+   "slices_checked": 91.0,
+   "slices_over_2se": 28.0,
+   "iglb_patches": 0.0,
+   "note": NaN
+  },
+  {
+   "group_set": "hand",
+   "groups": 8,
+   "val_tune_brier": 0.11404684890336857,
+   "max_gasce_union": 0.061942402192979945,
+   "slices_checked": 90.0,
+   "slices_over_2se": 23.0,
+   "iglb_patches": 1.0,
+   "note": NaN
+  },
+  {
+   "group_set": "discovered",
+   "groups": 0,
+   "val_tune_brier": NaN,
+   "max_gasce_union": NaN,
+   "slices_checked": NaN,
+   "slices_over_2se": NaN,
+   "iglb_patches": NaN,
+   "note": "no groups"
+  },
+  {
+   "group_set": "shap",
+   "groups": 5,
+   "val_tune_brier": 0.11370219928571798,
+   "max_gasce_union": 0.048637066586155506,
+   "slices_checked": 90.0,
+   "slices_over_2se": 22.0,
+   "iglb_patches": 1.0,
+   "note": NaN
+  }
+ ]
+}
