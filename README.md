@@ -11,6 +11,13 @@ Results on the test split, settings frozen in [PROTOCOL.md](PROTOCOL.md) before 
 * Routing by keeping the more confident of two answers: IGLB beats Platt by +6.7 pass rate points from token probability [4.5, 8.9], +0.1 from the feature model [-0.2, 0.5].
 * With 25 calibration problems IGHB fits noise; only updating cells whose gap exceeds two standard errors (by problem) removes most of the damage.
 
+v2, designed after the v1 test run and frozen in [PROTOCOL_V2.md](PROTOCOL_V2.md) before its own test run:
+
+* XGBoost tuned with Optuna over problem grouped folds, and a transformer over token confidence trajectories, don't beat the logistic model (test BSS 0.560 logistic vs 0.538 XGBoost vs 0.501 transformer on Qwen3).
+* Of 28 preregistered comparisons, the 4 that survive Holm's correction all start from raw token probability.
+* A conformal Qwen3 to GPT OSS cascade bounds accepted failures on validation but missed its targets on test (0.141 at a 0.10 target). Order preserving recalibration never changes its decisions.
+* Full tables: [runs/0bd9043/v2_summary.md](runs/0bd9043/v2_summary.md).
+
 The lab notebook ([notebook/LAB_NOTEBOOK.md](notebook/LAB_NOTEBOOK.md)) logs every decision, bug, and number by phase.
 
 ## Reproduce
@@ -42,7 +49,21 @@ Then, in order (each step writes to `runs/`):
 .venv/bin/python -m experiments.figures                     # paper figures
 ```
 
-The final run used for the paper is `runs/8f1de29/`. Optional: `git clone https://github.com/violacampos/multicalibration reference` to compare settings with the Campos code (commit `c9b7e5d`).
+v2, after the above:
+
+```bash
+.venv/bin/python -m experiments.v2_splits                   # val_tune / val_conformal
+.venv/bin/python -m experiments.v2_boosted                  # boosted multicalibration
+.venv/bin/python -m experiments.v2_xgboost                  # B4, Optuna search
+.venv/bin/python -m experiments.v2_shap                     # TreeSHAP, ablations, SHAP groups
+.venv/bin/python -m experiments.v2_transformer              # B6, B7 (or use the saved weights)
+.venv/bin/python -m experiments.v2_transformer_eval
+.venv/bin/python -m experiments.v2_predict_traj --with-test # separate process: torch next to xgboost crashes on macOS
+.venv/bin/python -m experiments.v2_run --role test          # conformal, Murphy, Holm, shift, once
+.venv/bin/python -m experiments.v2_summary runs/<git hash> test
+```
+
+The final runs used for the paper are `runs/8f1de29/` (v1) and `runs/0bd9043/` (v2). Optional: `git clone https://github.com/violacampos/multicalibration reference` to compare settings with the Campos code (commit `c9b7e5d`).
 
 ## Layout
 

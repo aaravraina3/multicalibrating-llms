@@ -845,3 +845,9 @@ Three group sets on B4 (test): the val_tune advantage of SHAP groups did not rep
 Explanation (diagnostics only, no setting changed): at the threshold chosen for 0.10, val_conformal's loss was 0.093 (SE 0.021, by problem) and test's is 0.141 (SE 0.017); the gap is about 1.8 combined standard errors. Test's accepted Qwen3 answers fail more often than val_conformal's at the same B2 scores (25.1% vs 19.7%), so B2 is more overconfident on test's high scoring answers. This matches v1, where B2's BSS was lower on test (0.560) than on validation (0.585). The guarantee is marginal over draws of the calibration set: in the simulation, a single 132 problem draw exceeded its target 20 to 37% of the time. One draw of 132 problems, a mildly harder test split, and a guarantee that only holds on average together account for it. On val_tune the same thresholds stayed under target (0.045, 0.084, 0.133). As on validation, uncalibrated, Platt, and IGLB scores give identical decisions; boosted multicalibration differs only at 0.05.
 
 Distribution shift (V7, test) repeats the validation pattern: Qwen3 to GPT OSS is very conservative (accepts 9% at target 0.10, risk 0.005); GPT OSS to Qwen3 breaks the guarantee badly (risk 0.40 at target 0.10, 0.30 at 0.05). B2's BSS falls from 0.82 to -0.12 (Qwen3 fit, GPT OSS evaluated) and from 0.56 to 0.06 (the reverse).
+
+Murphy decomposition on test (leftover gap at most 0.0016): from GPT OSS avg_prob, Platt lowers reliability 0.081 to 0.018 with resolution 0.061 to 0.067; IGLB raises resolution to 0.199. From B2, B4, B6, B7 reliability is 0.001 to 0.005 for every method.
+
+### Phase V9: report
+
+PAPER.pdf gains Section 5, "v2 additions, evaluated after the v1 test run", including what did not help (XGBoost, the transformer, SHAP groups on test, the conformal miss). Summary for the resume bullets: `runs/0bd9043/v2_summary.md`.
