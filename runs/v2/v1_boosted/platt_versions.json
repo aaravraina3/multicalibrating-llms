@@ -1,0 +1,6 @@
+{
+ "qwen3/avg_prob": "paper",
+ "qwen3/B2": "logit",
+ "gpt-oss/avg_prob": "paper",
+ "gpt-oss/B2": "logit"
+}

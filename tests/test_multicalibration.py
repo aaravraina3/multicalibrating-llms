@@ -91,3 +91,20 @@ def test_holdout_ighb_replay_reproduces_train():
     from calib.calibrators.ighb_protected import HoldoutIGHB
     m = HoldoutIGHB(alpha=0.001).fit(ptr, ytr, Gtr, pva, yva, Gva)
     assert len(m.rules) > 0 and np.array_equal(m.predict(ptr, Gtr), m.fitted_)
+
+
+def test_boosted_mc_replay_and_fresh_gasce():
+    from calib.calibrators.boosted import BoostedMC
+    m = BoostedMC(min_leaf=200).fit(ptr, ytr, Xtr, pva, yva, Xva)
+    assert len(m.rounds) > 0
+    assert np.array_equal(m.predict(ptr, Xtr), m.fitted_)
+    assert max_gasce(m.predict(pte, Xte), yte, Gte) < max_gasce(pte, yte, Gte) / 2
+
+
+def test_boosted_mc_leaf_rules_find_the_interaction():
+    from calib.calibrators.boosted import BoostedMC
+    m = BoostedMC(min_leaf=200).fit(ptr, ytr, Xtr, pva, yva, Xva)
+    # The level sets already separate long rows (the predictor knows "long"), so the trees only need to
+    # find the missing interaction partner, imports.
+    feats = {c[0] for _, _, conds, _, _ in m.leaf_rules(["long", "nested", "imports"]) for c in conds}
+    assert "imports" in feats

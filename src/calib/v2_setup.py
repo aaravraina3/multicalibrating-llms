@@ -42,3 +42,27 @@ def prepare_v2(rows, base_preds=None):
 
 def v2_preds_path():
     return DATA_DIR / "v2_base_preds.parquet"
+
+
+def load_features(rows):
+    """Label free feature frame aligned to `rows` by (model, task_id, sample_idx). Test features are built on
+    first use and cached."""
+    import pandas as pd
+
+    from calib.data import load_rows
+    from calib.features import build_features
+
+    key = ["model", "task_id", "sample_idx"]
+    dev = load_rows()[key].reset_index(drop=True)
+    frames = [pd.concat([dev, pd.read_parquet(DATA_DIR / "features.parquet").reset_index(drop=True)], axis=1)]
+    if (rows.split == "test").any():
+        path = DATA_DIR / "features_test.parquet"
+        if not path.exists():
+            all_rows = load_rows(include_test=True)
+            test = all_rows[all_rows.split == "test"].reset_index(drop=True)
+            pd.concat([test[key], build_features(test).reset_index(drop=True)], axis=1).to_parquet(path)
+        frames.append(pd.read_parquet(path))
+    feats = pd.concat(frames, ignore_index=True)
+    out = rows[key].merge(feats, on=key, how="left", validate="1:1")
+    assert len(out) == len(rows) and (out.task_id.to_numpy() == rows.task_id.to_numpy()).all()
+    return out.drop(columns=key)

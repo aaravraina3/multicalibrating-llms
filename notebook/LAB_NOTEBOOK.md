@@ -617,3 +617,35 @@ Official validation split by `sha256("calib-routing-v2-2026" + id)` into `val_tu
 | test | 264 | (not looked at) | (not looked at) |
 
 v2 fits every calibrator on calib, including on raw avg_prob, so v2 avg_prob numbers differ from the Phase 8 replication (fit on full train). Both are reported.
+
+### Phase V1: boosted multicalibration with learned groups
+
+`src/calib/calibrators/boosted.py`, `src/calib/v2_eval.py` (fits every calibrator once per model and starting score), `experiments/v2_boosted.py`, outputs `runs/v2/v1_boosted/`. Each round: 10 equal width level sets by current p; inside each, a depth 2 regression tree on residuals over the B2 features, `min_samples_leaf=400` (about 40 problems); `p = clip(p + 0.5 * tree)`. Fit on calib, stop at the first round that doesn't lower val_tune Brier, cap 50. Tests: replaying the saved trees reproduces the fitted predictions exactly; on synthetic data it halves fresh max gASCE and finds the missing interaction feature.
+
+Bug fixed during the phase: my first version gave no tree to level sets with fewer than 400 rows. Rows that moved into a small level set then never got corrected again; Qwen3 avg_prob ended at BSS 0.047 after 43 rounds. The plan has no such rule; a small level set's tree just can't split and becomes one constant shift. Removed it.
+
+val_tune (calibrators on calib; v1 alpha 0.003, epsilon 0.01, Platt inputs; LOGR outputs probabilities):
+
+| model | start | uncal BSS | Platt | IGLB | BMC | BMC rounds | max gASCE hand: before / BMC | max gASCE discovered: before / BMC |
+|---|---|---|---|---|---|---|---|---|
+| Qwen3 | avg_prob | -0.511 | 0.335 | 0.324 | 0.424 | 3 | 0.665 / 0.071 | 0.359 / 0.016 |
+| Qwen3 | B2 | 0.545 | 0.550 | 0.545 | 0.549 | 1 | 0.051 / 0.052 | none found |
+| GPT OSS | avg_prob | -0.107 | 0.224 | 0.869 | 0.534 | 6 | 0.452 / 0.099 | 0.343 / 0.082 |
+| GPT OSS | B2 | 0.901 | 0.907 | 0.904 | 0.905 | 1 | 0.010 / 0.010 | 0.008 / 0.007 |
+
+Discovered groups (leaves of the first 5 rounds with a feature condition, at least 40 calib problems; `runs/v2/v1_boosted/discovered_groups.json`):
+* Qwen3 avg_prob, top confidence level: `sc_mean_sim <= 0.68` (leaf residual -0.60) vs above (-0.11). Low agreement with the other 9 samples marks the overconfident answers.
+* GPT OSS avg_prob, levels 0.6 to 0.8: `all_std <= 0.45` (-0.58) and `sc_mean_sim <= 0.35` (-0.52). Low token log probability spread and low agreement mark failures.
+* GPT OSS B2: `loops > 1.5` at the top level (-0.045), small.
+* Qwen3 B2: none (one round, no split covering 40 problems).
+
+Compared with the hand groups: none of the discovered groups are length or difficulty. They are self consistency and token spread, which the hand group set doesn't contain, but B2 does as features. So from B2 the trees find almost nothing, the same story as RQ2.
+
+* From Qwen3 avg_prob, BMC beats every hand group method (0.424 vs 0.361 for LINR), because self consistency is the signal Qwen3 needs and no hand group carries it.
+* From GPT OSS avg_prob, it trails IGLB (0.534 vs 0.869). It stops after 6 rounds at the first round that doesn't help val_tune, before fully catching truncation; IGLB gets truncation directly from the hand written `truncated` group.
+* Caveat: BMC early stops on val_tune and is scored on val_tune here, so its numbers are optimistic. Discovered groups were found on calib, so measuring calibration on them in val_tune is fair.
+
+Explain:
+* Difference from IGHB: IGHB checks a fixed list of groups. Here a small tree picks the group itself, inside each confidence level, from all features.
+* Shallow trees with a big minimum leaf: each leaf is a group with an estimated error. Deep trees or tiny leaves would chase noise (the winner's curse from Phase 2). 400 rows is about 40 problems, the same floor as the hand groups.
+* Validation decides stopping because calib Brier always improves as trees fit calib's residuals. Only held out data can say when the trees start fitting noise.
