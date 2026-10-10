@@ -649,3 +649,33 @@ Explain:
 * Difference from IGHB: IGHB checks a fixed list of groups. Here a small tree picks the group itself, inside each confidence level, from all features.
 * Shallow trees with a big minimum leaf: each leaf is a group with an estimated error. Deep trees or tiny leaves would chase noise (the winner's curse from Phase 2). 400 rows is about 40 problems, the same floor as the hand groups.
 * Validation decides stopping because calib Brier always improves as trees fit calib's residuals. Only held out data can say when the trees start fitting noise.
+
+### Phase V2: XGBoost with Bayesian hyperparameter search (B4)
+
+`src/calib/xgb_model.py`, `experiments/v2_xgboost.py`, outputs `runs/v2/v2_xgboost/`. B2 features. Optuna TPE sampler (seed 0), 100 trials, objective mean log loss over `GroupKFold(5)` on base_train grouped by problem, no early stopping (`n_estimators` is searched instead). Search space as in the plan. Best config refit on all of base_train (XGBoost `random_state=0`). Trials in `optuna_trials_*.csv`.
+
+Best configs: both models chose depth 2 and slow learning (Qwen3: 597 trees, lr 0.010, min_child_weight 2.8, subsample 0.80, colsample 0.68; GPT OSS: 478 trees, lr 0.013, min_child_weight 1.3, subsample 0.89, colsample 0.80). Grouped CV log loss 0.323 / 0.151.
+
+Base predictors, uncalibrated:
+
+| model | start | val_tune log loss | val_tune Brier | val_tune AUROC | full validation log loss |
+|---|---|---|---|---|---|
+| Qwen3 | B0 | 0.494 | 0.164 | 0.823 | 0.461 |
+| Qwen3 | B1 | 0.349 | 0.115 | 0.929 | 0.329 |
+| Qwen3 | B2 | 0.348 | 0.113 | 0.930 | 0.317 |
+| Qwen3 | B3 | 0.394 | 0.134 | 0.906 | 0.356 |
+| Qwen3 | B4 | 0.354 | 0.121 | 0.919 | 0.331 |
+| GPT OSS | B0 | 0.587 | 0.193 | 0.781 | 0.590 |
+| GPT OSS | B1 | 0.097 | 0.026 | 0.993 | 0.115 |
+| GPT OSS | B2 | 0.090 | 0.025 | 0.995 | 0.108 |
+| GPT OSS | B3 | 0.087 | 0.024 | 0.994 | 0.107 |
+| GPT OSS | B4 | 0.089 | 0.023 | 0.995 | 0.106 |
+
+XGBoost doesn't beat the logistic model for Qwen3 and ties it for GPT OSS. With 316 problems, the search settles on the simplest trees it's allowed (depth 2, slow learning), close to an additive model, which is what logistic regression already is.
+
+Calibrators on B4 (val_tune BSS): Qwen3 uncalibrated 0.514, Platt 0.537, IGLB 0.542, BMC 0.529, LINR 0.523, IGHB 0.491. GPT OSS uncalibrated 0.906, Platt 0.909, BMC 0.909, IGLB 0.906 (no patch). Same story as B2: Platt does nearly all of it.
+
+Explain:
+* Boosting adds small trees one at a time, each fit to the remaining errors (gradient of log loss) of the trees before it.
+* Grouped folds keep all 10 samples of a problem in one fold. With row folds, a fold's validation rows would have near-duplicate siblings in training and the search would reward memorizing problems.
+* TPE models which hyperparameter values produced good versus bad trials, and samples new trials where good ones are more likely, instead of searching a grid.

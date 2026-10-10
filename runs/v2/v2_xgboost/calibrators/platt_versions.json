@@ -1,0 +1,4 @@
+{
+ "qwen3/B4": "paper",
+ "gpt-oss/B4": "logit"
+}

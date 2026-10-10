@@ -1,0 +1,28 @@
+{
+ "qwen3": {
+  "params": {
+   "max_depth": 2,
+   "learning_rate": 0.010078199874402023,
+   "n_estimators": 597,
+   "min_child_weight": 2.7949809591832775,
+   "subsample": 0.7969312675391906,
+   "colsample_bytree": 0.6782681475740795,
+   "reg_alpha": 0.5458013042470626,
+   "reg_lambda": 0.5793438362893054
+  },
+  "cv_log_loss": 0.32270122473080093
+ },
+ "gpt-oss": {
+  "params": {
+   "max_depth": 2,
+   "learning_rate": 0.012548970986605595,
+   "n_estimators": 478,
+   "min_child_weight": 1.2768843169879769,
+   "subsample": 0.8857312255245763,
+   "colsample_bytree": 0.8038329972325158,
+   "reg_alpha": 0.35500319701922495,
+   "reg_lambda": 0.01231502160541048
+  },
+  "cv_log_loss": 0.15092428091932172
+ }
+}

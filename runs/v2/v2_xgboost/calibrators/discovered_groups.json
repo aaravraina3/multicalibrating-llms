@@ -1,0 +1,31 @@
+{
+ "qwen3/B4": [],
+ "gpt-oss/B4": [
+  {
+   "round": 0,
+   "level": 0,
+   "conditions": [
+    [
+     "avg_prob",
+     "<=",
+     0.6894271671772003
+    ]
+   ],
+   "leaf_value": -0.004339746516968439,
+   "leaf_rows": 556
+  },
+  {
+   "round": 0,
+   "level": 0,
+   "conditions": [
+    [
+     "avg_prob",
+     ">",
+     0.6894271671772003
+    ]
+   ],
+   "leaf_value": -0.007491210983134806,
+   "leaf_rows": 400
+  }
+ ]
+}
