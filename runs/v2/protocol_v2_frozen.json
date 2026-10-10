@@ -1,0 +1,27 @@
+{
+ "platt_versions": {
+  "qwen3/avg_prob": "paper",
+  "qwen3/B2": "logit",
+  "gpt-oss/avg_prob": "paper",
+  "gpt-oss/B2": "logit",
+  "qwen3/B4": "paper",
+  "gpt-oss/B4": "logit",
+  "qwen3/B6": "logit",
+  "qwen3/B7": "logit",
+  "gpt-oss/B6": "logit",
+  "gpt-oss/B7": "logit"
+ },
+ "transformer": {
+  "qwen3": "B6",
+  "gpt-oss": "B7"
+ },
+ "conformal_base": "B2",
+ "conformal_base_selection": {
+  "B2": 0.11215,
+  "B4": 0.11405,
+  "B6": 0.11557,
+  "B7": 0.11641,
+  "avg_prob": 0.14338
+ },
+ "conformal_explain_calibrator": "platt"
+}

@@ -776,3 +776,37 @@ Explain:
 * Attention lets each chunk's representation depend on every other chunk, so the model can relate, say, a confident ending to a hesitant middle. Pooling then summarizes the whole sequence.
 * Backpropagation: the loss's gradient flows back through the head, pooling, attention, and projection, and AdamW nudges every weight against it.
 * Several seeds: a small network on 316 problems lands in different places depending on its random start and batch order; averaging 5 reduces that variance.
+
+### Phases V5 to V7 (development run on val_tune)
+
+`src/calib/conformal.py`, `src/calib/stats.py`, `experiments/v2_conformal.py`, `experiments/v2_murphy_holm.py`, `experiments/v2_shift.py`, all run by `experiments/v2_run.py`; development outputs `runs/v2/dev_val_tune/` (with `v2_summary.md`). IGLB and boosted multicalibration early stopped on val_tune, so their val_tune numbers here are optimistic; the test run is the honest one.
+
+Bug: the first orchestrator run crashed (exit 139) after the conformal step. Importing torch in the same process as xgboost and shap segfaults on this Mac (OpenMP clash; reproduced in a 10 line script: crashes with `import torch`, runs without). Fix: B6/B7 predictions come from `experiments/v2_predict_traj.py` in its own process, replaying the saved weights on the CPU (max difference from the saved dev predictions: 0.0), and the orchestrator never imports torch.
+
+**V5, conformal risk control** (Qwen3 primary, GPT OSS fallback, B2 base, thresholds on val_conformal, risk measured on val_tune):
+
+| target | realized risk | escalation | system pass | oracle at same budget | regret |
+|---|---|---|---|---|---|
+| 0.05 | 0.045 | 0.631 | 0.506 | 0.606 | 0.100 |
+| 0.10 | 0.084 | 0.522 | 0.523 | 0.606 | 0.083 |
+| 0.15 | 0.133 | 0.436 | 0.530 | 0.606 | 0.076 |
+
+* Realized risk is at or below every target.
+* **Uncalibrated, Platt, and IGLB give identical decisions**, and boosted multicalibration differs only at 0.05. Conformal risk control picks the threshold from the score's ranking on val_conformal, so any order preserving recalibration lands on the same accepted set. IGLB made no patch on B2. The plan's "better calibrated scores escalate less for the same guarantee" doesn't hold here: only a calibrator that reorders answers across groups can change the cascade. Regret equals rank based P4 on the raw score for the same reason.
+* The guarantee is expensive here: Qwen3 fails 55% of the time, so keeping accepted failures under 10% of all answers means escalating 52%.
+* Simulation check (500 fresh calibration draws of 132 problems with known pass probabilities): mean realized risk 0.043, 0.094, 0.145 for targets 0.05, 0.10, 0.15. The guarantee is on average over calibration draws; single draws exceed the target 20 to 37% of the time.
+* Routing explanation (Platt scores, target 0.10, 696 of 1320 val_conformal answers escalated): escalated answers have much lower B4 block SHAP for self consistency (-0.162 vs +0.143 for accepted), then AST structure (-0.079 vs +0.065), size, and logprob statistics. Top features: low agreement with the other samples, invalid syntax, long outputs. This explains B4 before calibration, not the B2 cascade itself.
+
+**V6, Murphy decomposition** (val_tune; leftover gap at most 0.0013):
+* From raw avg_prob, Platt cuts reliability (Qwen3 0.213 to 0.008; GPT OSS 0.092 to 0.012) but barely moves resolution. Group methods on GPT OSS raise resolution (0.068 to 0.221 for IGLB): the groups add information about which answers fail, so they do more than calibrate.
+* From B2, reliability is already 0.002 to 0.009 for every method and resolution doesn't change: nothing left to fix.
+
+**Holm family** (28 comparisons on val_tune, exploratory; test is in V8): only the three GPT OSS avg_prob comparisons (LINR, IGLB, BMC vs Platt) survive the correction. Qwen3 BMC vs Platt from avg_prob (-0.022 Brier, unadjusted p 0.015) doesn't.
+
+**V7, distribution shift:** a base predictor and calibrators fit on one model transfer badly. B2 fit on Qwen3 and evaluated on GPT OSS has BSS -0.06 (0.90 in distribution); GPT OSS to Qwen3 gives 0.29 (0.55). Conformal under shift: a threshold set on Qwen3's val_conformal applied to GPT OSS is far too conservative (accepts 11%, risk 0); set on GPT OSS and applied to Qwen3 it breaks the guarantee (risk 0.369 at target 0.10). The SHAP comparison from V3 explains the direction: GPT OSS's predictor leans on size (finishing), which means less for Qwen3, whose failures need agreement and structure. No calibrator fixes a base model trained on the wrong model.
+
+Explain:
+* The conformal guarantee: averaged over draws of the calibration problems, the expected share of accepted failing answers on a new exchangeable problem is at most the target. It assumes calibration and test problems are exchangeable (drawn the same way), and it holds on average, not for every draw.
+* Better calibrated scores don't escalate less here because the threshold is learned on the same ranking. Calibration helps only if it changes the ranking, which group methods can do.
+* Calibration vs discrimination: reliability is miscalibration; resolution is how far the bins' pass rates spread from the overall rate. Recalibration that only relabels scores can shrink reliability but can't add resolution; group methods can, because they bring new information.
+* Many comparisons need a correction: with 28 tests at 0.05, about 1.4 look significant by chance. Holm sorts p values and multiplies the smallest by 28, the next by 27, and so on, which controls the chance of any false positive.

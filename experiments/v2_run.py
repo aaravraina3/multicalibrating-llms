@@ -2,14 +2,12 @@
 on the commit tagged v2-final, writing to runs/<git hash>/."""
 
 import json
-import pickle
 import subprocess
 import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import torch
 
 from calib import metrics as M
 from calib.base_model import VARIANTS
@@ -18,37 +16,28 @@ from calib.data import DATA_DIR, load_rows
 from calib.features import prepare_matrix
 from calib.rq_setup import base_preds_with_test, load_base_preds
 from calib.shap_tools import background
-from calib.trajectory import TrajectoryNet, build_tensors, predict
 from calib.v2_eval import METHODS, group_cols, mask, part, predict as cal_predict
 from calib.v2_setup import load_features, prepare_v2, v2_preds_path
 from calib.xgb_model import make_xgb
 from experiments import v2_conformal, v2_murphy_holm, v2_shap, v2_shift
 from experiments.v2_boosted import evaluate_starts
-from experiments.v2_transformer import MODEL_DIR, SEEDS
 
 STARTS = ["avg_prob", "B2", "B4", "B6", "B7"]
 BEST = json.loads(Path("runs/v2/v2_xgboost/best_config.json").read_text())
 
 
 def v2_predictions(rows, X):
-    """B4, B6, B7 for every row from the frozen models: B4 refit deterministically, B6/B7 from saved weights."""
-    out = pd.DataFrame(index=rows.index, columns=["B4", "B6", "B7"], dtype=float)
-    seq, pad, scalar = build_tensors(rows)
+    """B4 refit deterministically; B6/B7 from data/v2_traj_preds_all.parquet, written by
+    experiments/v2_predict_traj.py in its own process (torch can't share a process with xgboost and shap here)."""
+    out = pd.DataFrame(index=rows.index, columns=["B4"], dtype=float)
     for model in ["qwen3", "gpt-oss"]:
         m, bt = (rows.model == model).to_numpy(), mask(rows, model, "base_train")
         b4 = make_xgb(BEST[model]["params"], 0).fit(X[bt], rows.y.to_numpy()[bt])
         out.loc[m, "B4"] = b4.predict_proba(X[m])[:, 1]
-        with open(MODEL_DIR / f"scalers_{model}.pkl", "rb") as f:
-            sc = pickle.load(f)
-        s_seq, s_scalar, _ = sc["traj"].transform(seq[m], pad[m], scalar[m])
-        extra = sc["features"].transform(X[m]).astype(np.float32)
-        for name, ex in [("B6", None), ("B7", extra)]:
-            ps = []
-            for seed in SEEDS:
-                net = TrajectoryNet(n_extra=0 if ex is None else ex.shape[1])
-                net.load_state_dict(torch.load(MODEL_DIR / f"{name}_{model}_seed{seed}.pt"))
-                ps.append(predict(net, s_seq, pad[m], s_scalar, ex))
-            out.loc[m, name] = np.mean(ps, axis=0)
+    key = ["model", "task_id", "sample_idx"]
+    traj = rows[key].merge(pd.read_parquet(DATA_DIR / "v2_traj_preds_all.parquet"), on=key, how="left", validate="1:1")
+    assert traj[["B6", "B7"]].notna().all().all(), "run experiments.v2_predict_traj --with-test first"
+    out["B6"], out["B7"] = traj.B6.to_numpy(), traj.B7.to_numpy()
     return out
 
 

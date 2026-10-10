@@ -1,0 +1,29 @@
+{
+ "calibrator": "platt",
+ "target": 0.1,
+ "threshold": 0.4150762036114808,
+ "escalated": 696,
+ "rows": 1320,
+ "top_features_escalated_mean_shap": [
+  [
+   "sc_mean_sim",
+   -0.13022920712497785
+  ],
+  [
+   "syntax_valid",
+   -0.05390929609551272
+  ],
+  [
+   "log_output_tokens",
+   -0.04710250555774971
+  ],
+  [
+   "log_code_lines",
+   -0.006816876162451857
+  ],
+  [
+   "log_prompt_chars",
+   -0.012543076848368945
+  ]
+ ]
+}
