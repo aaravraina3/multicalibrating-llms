@@ -851,3 +851,12 @@ Murphy decomposition on test (leftover gap at most 0.0016): from GPT OSS avg_pro
 ### Phase V9: report
 
 PAPER.pdf gains Section 5, "v2 additions, evaluated after the v1 test run", including what did not help (XGBoost, the transformer, SHAP groups on test, the conformal miss). Summary for the resume bullets: `runs/0bd9043/v2_summary.md`.
+
+### Post-run review fixes (reporting only, no test number changed)
+
+* Checked bug timing: all three v2 code fixes (boosted multicalibration level-set rule, binary SHAP split, duplicate worst slices) were committed between 16:11 and 16:59, before the `v2-final` tag; the test ran after it.
+* Boosted multicalibration rounds on test fits: avg_prob 3 (Qwen3), 6 (GPT OSS); learned starts 0 to 6, mostly 1.
+* Routing explanation redone exactly for B2, the model that makes the cascade's decisions: coefficient x (standardized feature - base_train mean), log odds (`runs/0bd9043/reporting_fixes/`). Escalated vs accepted: self consistency -0.89 vs +0.89, logprob statistics -0.77 vs +0.53, AST structure -0.68 vs +0.61, size -0.51 vs +0.43. B4's SHAP had ranked logprob statistics last; B2 leans on them more.
+* Worst slices recomputed with at least 20 problems per slice (30 rows can be 3 problems). Slices within 2 standard errors are labeled tentative. The overconfident Qwen3 "nested code at p 0.85" slice had under 20 problems and drops out.
+* Conformal diagnosis written (`runs/0bd9043/conformal_diagnosis.md`): splits look exchangeable (contest numbers, platform and difficulty mix); the miss is about 1.8 standard errors. Disclosure: v1 chose B2's C, B2's Platt input, and IGHB/IGLB settings on the full validation set, which includes what became val_conformal.
+* Wording: "targeting" an accepted failure rate rather than "bounding". LOGR in the replication table labeled as hard labels.

@@ -124,6 +124,29 @@ def build(run, role):
             md_table(e, ["block", "escalated_mean", "accepted_mean", "difference"], d=4), "",
             "Top features for escalated answers: " + ", ".join(f"{f} {v:+.3f}" for f, v in top["top_features_escalated_mean_shap"]), ""]
 
+    fixes = run / "reporting_fixes"
+    if fixes.exists():
+        out += ["## Post-run reporting fixes (no test number changed)", "",
+                "**Exact routing explanation for B2**, the logistic model that makes the cascade's decisions: contribution of "
+                "feature j = coefficient x (standardized value - base_train mean), log odds scale, val_conformal, Platt at "
+                "target 0.10. This replaces the B4 SHAP version above as the main routing explanation.", ""]
+        b = pd.read_csv(fixes / "routing_explanation_b2_exact.csv")
+        out += [md_table(b, ["block", "escalated_mean_logodds", "accepted_mean_logodds", "difference"]), ""]
+        f = pd.read_csv(fixes / "routing_explanation_b2_exact_features.csv").head(8)
+        out += ["Top features by escalated minus accepted: " + ", ".join(f"{r.feature} {r.difference:+.3f}" for r in f.itertuples()), ""]
+        ws = json.loads((fixes / "worst_slices_min20_problems.json").read_text())
+        out += ["**Worst slices with at least 20 problems** (replaces the 30 row floor; uncalibrated B4, val_tune, probability "
+                "scale SHAP profiles). Slices not significant at 2 standard errors are tentative.", ""]
+        for model, worst in ws.items():
+            for w in worst:
+                tag = "" if w["significant_2se"] else " (tentative: within 2 SE)"
+                prof = ", ".join(f"{k} {v:+.3f}" for k, v in w["block_profile_vs_overall"].items())
+                out.append(f"* {model}, {w['group']}, bin {w['bin']}: {w['problems']} problems, predicted {w['mean_p']:.2f}, "
+                           f"passed {w['pass_rate']:.2f}, gap {w['gap']:+.3f} (SE {w['se']:.3f}){tag}. Blocks: {prof}.")
+        out += ["", "Interaction values (the stable pairs above) come from path dependent TreeSHAP on the log odds scale, "
+                "the only mode shap supports for interactions, so they don't follow safeguard 2 like the main effects do.", "",
+                "Conformal diagnosis: `conformal_diagnosis.md`.", ""]
+
     s = pd.read_csv(run / "shift" / "shift.csv")
     cols = ["base", "fit_on", "evaluated_on", "calibrator", "bss", "ece", "risk_at_0.1", "coverage_at_0.1"]
     out += ["## Distribution shift (optional V7)", "", md_table(s, cols, ["base", "fit on", "evaluated on", "calibrator", "BSS",

@@ -15,7 +15,7 @@ v2, designed after the v1 test run and frozen in [PROTOCOL_V2.md](PROTOCOL_V2.md
 
 * XGBoost tuned with Optuna over problem grouped folds, and a transformer over token confidence trajectories, don't clearly beat the logistic model (Qwen3 test BSS 0.560 logistic, 0.538 XGBoost, 0.501 transformer; GPT OSS within 0.005).
 * Of 28 preregistered comparisons, the 4 that survive Holm's correction all start from raw token probability.
-* A conformal Qwen3 to GPT OSS cascade bounds accepted failures on validation but missed its targets on test (0.141 at a 0.10 target). Order preserving recalibration never changes its decisions.
+* A conformal Qwen3 to GPT OSS cascade targeting a rate of accepted failures held on validation but missed on test (0.141 at a 0.10 target; see the [diagnosis](runs/0bd9043/conformal_diagnosis.md)). Order preserving recalibration never changes its decisions.
 * Full tables: [runs/0bd9043/v2_summary.md](runs/0bd9043/v2_summary.md).
 
 The lab notebook ([notebook/LAB_NOTEBOOK.md](notebook/LAB_NOTEBOOK.md)) logs every decision, bug, and number by phase.

@@ -393,6 +393,36 @@ Routing explanation (platt scores, target 0.10, threshold 0.415; 696 of 1320 val
 
 Top features for escalated answers: sc_mean_sim -0.130, syntax_valid -0.054, log_output_tokens -0.047, log_code_lines -0.007, log_prompt_chars -0.013
 
+## Post-run reporting fixes (no test number changed)
+
+**Exact routing explanation for B2**, the logistic model that makes the cascade's decisions: contribution of feature j = coefficient x (standardized value - base_train mean), log odds scale, val_conformal, Platt at target 0.10. This replaces the B4 SHAP version above as the main routing explanation.
+
+| block | escalated_mean_logodds | accepted_mean_logodds | difference |
+|---|---|---|---|
+| self consistency | -0.891 | 0.893 | -1.785 |
+| logprob statistics | -0.771 | 0.532 | -1.304 |
+| AST structure | -0.676 | 0.613 | -1.289 |
+| size | -0.510 | 0.425 | -0.935 |
+
+Top features by escalated minus accepted: sc_mean_sim -0.619, sc_identical -0.551, structure_missing -0.519, syntax_valid -0.519, truncated -0.369, sc_missing -0.339, empty_code -0.328, code_lp_missing -0.307
+
+**Worst slices with at least 20 problems** (replaces the 30 row floor; uncalibrated B4, val_tune, probability scale SHAP profiles). Slices not significant at 2 standard errors are tentative.
+
+* qwen3, loc_high, bin 5: 30 problems, predicted 0.55, passed 0.83, gap +0.273 (SE 0.053). Blocks: logprob statistics +0.025, size -0.028, AST structure +0.061, self consistency +0.086.
+* qwen3, shap: log_code_lines > 2.94 & sc_mean_sim > 0.546, bin 6: 22 problems, predicted 0.64, passed 0.92, gap +0.281 (SE 0.056). Blocks: logprob statistics +0.039, size -0.018, AST structure +0.082, self consistency +0.125.
+* qwen3, shap: log_code_lines > 2.94 & sc_mean_sim > 0.546, bin 4: 23 problems, predicted 0.46, passed 0.71, gap +0.249 (SE 0.133) (tentative: within 2 SE). Blocks: logprob statistics +0.011, size -0.067, AST structure +0.045, self consistency +0.063.
+* qwen3, shap: log_output_tokens > 6.72, bin 2: 32 problems, predicted 0.25, passed 0.43, gap +0.179 (SE 0.089). Blocks: logprob statistics -0.042, size -0.115, AST structure +0.023, self consistency -0.026.
+* qwen3, prompt_len_high, bin 3: 21 problems, predicted 0.35, passed 0.56, gap +0.207 (SE 0.117) (tentative: within 2 SE). Blocks: logprob statistics -0.015, size -0.092, AST structure +0.028, self consistency +0.025.
+* gpt-oss, disc: [['avg_prob', '>', 0.6894271671772003]], bin 8: 37 problems, predicted 0.86, passed 0.98, gap +0.121 (SE 0.019). Blocks: logprob statistics +0.019, size +0.139, AST structure +0.121, self consistency +0.117.
+* gpt-oss, all, bin 9: 59 problems, predicted 0.96, passed 1.00, gap +0.031 (SE 0.003). Blocks: logprob statistics +0.012, size +0.182, AST structure +0.110, self consistency +0.199.
+* gpt-oss, shap: log_code_lines <= 2.77, bin 9: 20 problems, predicted 0.98, passed 1.00, gap +0.021 (SE 0.004). Blocks: logprob statistics +0.005, size +0.198, AST structure +0.104, self consistency +0.209.
+* gpt-oss, disc: [['avg_prob', '>', 0.6894271671772003]], bin 7: 22 problems, predicted 0.75, passed 0.72, gap -0.030 (SE 0.118) (tentative: within 2 SE). Blocks: logprob statistics +0.020, size +0.123, AST structure +0.114, self consistency +0.033.
+* gpt-oss, disc: [['avg_prob', '<=', 0.6894271671772003]], bin 9: 21 problems, predicted 0.97, passed 0.99, gap +0.020 (SE 0.015) (tentative: within 2 SE). Blocks: logprob statistics -0.002, size +0.187, AST structure +0.106, self consistency +0.212.
+
+Interaction values (the stable pairs above) come from path dependent TreeSHAP on the log odds scale, the only mode shap supports for interactions, so they don't follow safeguard 2 like the main effects do.
+
+Conformal diagnosis: `conformal_diagnosis.md`.
+
 ## Distribution shift (optional V7)
 
 | base | fit on | evaluated on | calibrator | BSS | ECE | risk at target 0.10 | coverage at 0.10 |
