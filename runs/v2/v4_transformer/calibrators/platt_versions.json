@@ -1,0 +1,6 @@
+{
+ "qwen3/B6": "logit",
+ "qwen3/B7": "logit",
+ "gpt-oss/B6": "logit",
+ "gpt-oss/B7": "logit"
+}

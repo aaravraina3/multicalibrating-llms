@@ -1,0 +1,146 @@
+{
+ "qwen3/B6": {
+  "inner_train_problems": 253,
+  "inner_val_problems": 63,
+  "seeds": [
+   {
+    "seed": 0,
+    "epochs_run": 13,
+    "best_epoch": 8,
+    "best_inner_log_loss": 0.39961131014713336
+   },
+   {
+    "seed": 1,
+    "epochs_run": 12,
+    "best_epoch": 7,
+    "best_inner_log_loss": 0.39805664537799734
+   },
+   {
+    "seed": 2,
+    "epochs_run": 12,
+    "best_epoch": 7,
+    "best_inner_log_loss": 0.413348285584814
+   },
+   {
+    "seed": 3,
+    "epochs_run": 12,
+    "best_epoch": 7,
+    "best_inner_log_loss": 0.41546251391400657
+   },
+   {
+    "seed": 4,
+    "epochs_run": 12,
+    "best_epoch": 7,
+    "best_inner_log_loss": 0.4027864441674735
+   }
+  ]
+ },
+ "qwen3/B7": {
+  "inner_train_problems": 253,
+  "inner_val_problems": 63,
+  "seeds": [
+   {
+    "seed": 0,
+    "epochs_run": 16,
+    "best_epoch": 11,
+    "best_inner_log_loss": 0.32837142962119303
+   },
+   {
+    "seed": 1,
+    "epochs_run": 15,
+    "best_epoch": 10,
+    "best_inner_log_loss": 0.3332233622220912
+   },
+   {
+    "seed": 2,
+    "epochs_run": 12,
+    "best_epoch": 7,
+    "best_inner_log_loss": 0.34061297420634046
+   },
+   {
+    "seed": 3,
+    "epochs_run": 15,
+    "best_epoch": 10,
+    "best_inner_log_loss": 0.3404172484755922
+   },
+   {
+    "seed": 4,
+    "epochs_run": 20,
+    "best_epoch": 15,
+    "best_inner_log_loss": 0.3137400153457964
+   }
+  ]
+ },
+ "gpt-oss/B6": {
+  "inner_train_problems": 253,
+  "inner_val_problems": 63,
+  "seeds": [
+   {
+    "seed": 0,
+    "epochs_run": 17,
+    "best_epoch": 12,
+    "best_inner_log_loss": 0.11309178350308526
+   },
+   {
+    "seed": 1,
+    "epochs_run": 15,
+    "best_epoch": 10,
+    "best_inner_log_loss": 0.11374341337202443
+   },
+   {
+    "seed": 2,
+    "epochs_run": 17,
+    "best_epoch": 12,
+    "best_inner_log_loss": 0.11227535083520389
+   },
+   {
+    "seed": 3,
+    "epochs_run": 11,
+    "best_epoch": 6,
+    "best_inner_log_loss": 0.1154515429340776
+   },
+   {
+    "seed": 4,
+    "epochs_run": 14,
+    "best_epoch": 9,
+    "best_inner_log_loss": 0.11139849694667472
+   }
+  ]
+ },
+ "gpt-oss/B7": {
+  "inner_train_problems": 253,
+  "inner_val_problems": 63,
+  "seeds": [
+   {
+    "seed": 0,
+    "epochs_run": 14,
+    "best_epoch": 9,
+    "best_inner_log_loss": 0.10260812933482821
+   },
+   {
+    "seed": 1,
+    "epochs_run": 12,
+    "best_epoch": 7,
+    "best_inner_log_loss": 0.09880203044666569
+   },
+   {
+    "seed": 2,
+    "epochs_run": 16,
+    "best_epoch": 11,
+    "best_inner_log_loss": 0.10376536088255567
+   },
+   {
+    "seed": 3,
+    "epochs_run": 13,
+    "best_epoch": 8,
+    "best_inner_log_loss": 0.10357541261713893
+   },
+   {
+    "seed": 4,
+    "epochs_run": 14,
+    "best_epoch": 9,
+    "best_inner_log_loss": 0.10297195181732864
+   }
+  ]
+ }
+}

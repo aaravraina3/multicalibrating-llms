@@ -747,3 +747,32 @@ Explain:
 * Correlated features split credit: if two features carry the same signal, SHAP divides it between them. The ablation measures what's unique to a block, so the two together tell you importance and redundancy.
 * SHAP groups are chosen on out of fold base_train rows and evaluated on val_tune; choosing and evaluating on the same rows is the winner's curse again.
 * SHAP is not causal: it says what B4 leans on. Long code passing more often doesn't mean making code longer helps.
+
+### Phase V4: transformer over token confidence trajectories (B6, B7)
+
+`src/calib/trajectory.py`, `experiments/v2_transformer.py`, `experiments/v2_transformer_eval.py`, outputs `runs/v2/v4_transformer/`. Each generation's per-token log probabilities become 256 chunk summaries (mean, min, share below -2, share in the code span) plus log token count, standardized on base_train. Model: linear 4 to 64, learned positions, 2 encoder layers, 4 heads, dropout 0.1, masked mean pool, scalar concatenated, 2 layer MLP head. BCE, AdamW lr 1e-3 wd 1e-2, batch 128, up to 50 epochs, early stopping patience 5 on an inner 80/20 base_train split by problem. 5 seeds averaged. B7 also concatenates the standardized B2 features before the head. Tests: chunking for long and short outputs; garbage in padded positions doesn't change the output. Seeds stopped after 12 to 17 epochs (best epoch 7 to 12). Trained on the Apple GPU after the CPU run was too slow next to V3.
+
+val_tune, uncalibrated:
+
+| model | start | log loss | Brier | AUROC |
+|---|---|---|---|---|
+| Qwen3 | B2 (logistic) | 0.348 | 0.113 | 0.930 |
+| Qwen3 | B4 (XGBoost) | 0.354 | 0.121 | 0.919 |
+| Qwen3 | B6 (trajectory) | 0.366 | 0.122 | 0.921 |
+| Qwen3 | B7 (trajectory + features) | 0.369 | 0.126 | 0.922 |
+| GPT OSS | B2 | 0.090 | 0.025 | 0.995 |
+| GPT OSS | B4 | 0.089 | 0.023 | 0.995 |
+| GPT OSS | B6 | 0.125 | 0.031 | 0.992 |
+| GPT OSS | B7 | 0.088 | 0.024 | 0.994 |
+
+Log loss differences (95% task clustered interval): Qwen3 B6 - B2 +0.018 [-0.023, 0.055], B7 - B2 +0.021 [0.000, 0.041]; GPT OSS B6 - B2 +0.035 [0.014, 0.060], B7 - B2 -0.002 [-0.012, 0.010].
+
+**The trajectory did not beat the summary features.** Alone (B6) it's worse than logistic regression on the summary features for both models, clearly so for GPT OSS, whose signal is mostly "did it finish and write code", which the summary features state directly. Adding the summary features (B7) only brings it back to where B2 already was. With 316 training problems, a sequence model has little room to find shape information the summaries miss. Selected by val_tune Brier: B6 for Qwen3, B7 for GPT OSS (frozen in PROTOCOL_V2.md for the Holm family).
+
+Calibrators on top (val_tune BSS): Qwen3 B6 uncalibrated 0.510, Platt 0.530, IGLB 0.536, BMC 0.530; GPT OSS B7 uncalibrated 0.906, Platt 0.905, BMC 0.907. GPT OSS B6 is the one place a group method clearly helps a learned start (IGHB 0.897 vs Platt 0.874), because B6 never sees whether code was written and the hand groups (`truncated`, `syntax_invalid`) supply it.
+
+Explain:
+* Chunking: outputs run up to 2000 tokens; 256 chunks keeps attention cheap (256 x 256) and gives every output the same length, while keeping the order of the trajectory.
+* Attention lets each chunk's representation depend on every other chunk, so the model can relate, say, a confident ending to a hesitant middle. Pooling then summarizes the whole sequence.
+* Backpropagation: the loss's gradient flows back through the head, pooling, attention, and projection, and AdamW nudges every weight against it.
+* Several seeds: a small network on 316 problems lands in different places depending on its random start and batch order; averaging 5 reduces that variance.
