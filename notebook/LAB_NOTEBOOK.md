@@ -684,7 +684,7 @@ Explain:
 
 `src/calib/shap_tools.py`, `experiments/v2_shap.py`, outputs `runs/v2/v3_shap/<model>/`. All SHAP explains B4's raw prediction before calibration (safeguard 8), and shows what the model relies on, not what causes code to fail. Main effects: interventional TreeSHAP, 200 base_train background rows (seed 0), probability scale, on val_tune (safeguards 2 to 4). Interactions: path dependent, log odds scale (shap's only option). B4 retrained under seeds 0, 1, 2.
 
-Three bugs fixed during the phase, before the numbers below: a binary feature's "at or below the median" side was every row (`syntax_valid <= 1`); the worst slice list repeated the same rows under different group names; and 5 row slices with noisy gaps ranked as "worst". See DECISIONS.md 46 to 48 and 57.
+Three bugs fixed during the phase, before the numbers below: a binary feature's "at or below the median" side was every row (`syntax_valid <= 1`); the worst slice list repeated the same rows under different group names; and 5 row slices with noisy gaps ranked as "worst" (fixed with a 30 row floor, later a 20 problem floor for the write-up).
 
 Block importance (mean |block SHAP|, probability points, 95% task clustered interval, 1000 draws):
 
